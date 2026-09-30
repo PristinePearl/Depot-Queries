@@ -4,163 +4,123 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Query Register</title>
-<style>
-:root{
-  --bg:#f4f6fa;--card:#fff;--ink:#1c2533;--mute:#6b7688;--line:#dfe4ec;
-  --brand:#1f4e8c;--brand2:#163a69;--ok:#1b8a5a;--warn:#c77800;--err:#c0392b;--radius:10px;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
-header{background:var(--brand2);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-header h1{font-size:18px;margin:0;font-weight:600;flex:1}
-header button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer}
-nav{display:flex;gap:4px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line)}
-nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:14px;color:var(--mute);border-bottom:3px solid transparent}
-nav button.on{color:var(--brand);border-color:var(--brand);font-weight:600}
-main{max-width:1150px;margin:18px auto;padding:0 16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px}
-.full{grid-column:1/-1}
-@media(max-width:700px){.grid{grid-template-columns:1fr}}
-label{display:block;font-size:12px;font-weight:600;color:var(--mute);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
-label .req{color:var(--err);display:none}
-label.r .req{display:inline}
-input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;background:#fff;color:var(--ink)}
-input:focus,select:focus,textarea:focus{outline:2px solid #b9d0f0;border-color:var(--brand)}
-input[readonly],textarea[readonly]{background:#f0f2f6;color:#4a5568}
-textarea{resize:vertical;min-height:90px}
-.seg{display:flex;gap:8px}
-.seg label{flex:1;margin:0;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);font-weight:500}
-.seg input{display:none}
-.seg span{display:block;text-align:center;padding:9px;border:1px solid var(--line);border-radius:7px;cursor:pointer}
-.seg input:checked+span{background:var(--brand);color:#fff;border-color:var(--brand)}
-.rel{position:relative}
-.dd{position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1px solid var(--line);border-radius:7px;max-height:260px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
-.opt{padding:8px 10px;cursor:pointer;border-bottom:1px solid #f0f2f6}
-.opt:hover{background:#eef4fc}
-.opt small{display:block;color:var(--mute)}
-.opt.none{color:var(--mute);cursor:default}
-.actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
-.btn{padding:10px 20px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;font:inherit}
-.btn.p{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
-.btn:disabled{opacity:.6;cursor:wait}
-.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.pill.Pending{background:#fff3dc;color:var(--warn)}
-.pill.Closed{background:#dff5ea;color:var(--ok)}
-.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:end}
-.bar>div{min-width:130px}
-.bar .grow{flex:1;min-width:200px}
-.stats{display:flex;gap:10px;margin-bottom:14px}
-.stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px}
-.stat b{font-size:18px;display:block}
-.tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{font-size:12px;text-transform:uppercase;color:var(--mute);background:#f8fafc;white-space:nowrap}
-tbody tr{cursor:pointer}
-tbody tr:hover{background:#f3f7fd}
-td small{display:block;color:var(--mute)}
-.ov{position:fixed;inset:0;background:rgba(15,25,40,.5);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:50}
-.ov.on{display:flex}
-.modal{background:#fff;border-radius:12px;max-width:820px;width:100%;padding:22px}
-.modal h2{margin:0 0 4px;font-size:18px}
-.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;margin:14px 0;font-size:14px}
-.kv div:nth-child(odd){color:var(--mute);font-weight:600;font-size:12px;text-transform:uppercase;padding-top:2px}
-.kv div{white-space:pre-wrap;word-break:break-word}
-hr{border:0;border-top:1px solid var(--line);margin:16px 0}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1c2533;color:#fff;padding:10px 18px;border-radius:8px;display:none;z-index:99;max-width:90%}
-#toast.err{background:var(--err)}
-#toast.on{display:block}
-.note{color:var(--mute);font-size:12px;margin-top:4px}
-#loading{position:fixed;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:90;font-weight:600}
-#loading.on{display:flex}
-a{color:var(--brand)}
-.btn.sm{padding:4px 10px;font-size:12px;white-space:nowrap}
+<script src="https://cdn.tailwindcss.com"></script>
+<style type="text/tailwindcss">
+body{@apply bg-slate-100 text-slate-800 text-sm antialiased}
+label{@apply block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1}
+label .req{@apply text-rose-600 hidden}
+label.r .req{@apply inline}
+input,select,textarea{@apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500}
+input[readonly],textarea[readonly]{@apply bg-slate-100 text-slate-600}
+input[type=file]{@apply p-1.5}
+textarea{@apply min-h-[90px] resize-y}
+.card{@apply bg-white rounded-2xl border border-slate-200 shadow-sm}
+.btn{@apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-wait}
+.btn.p{@apply bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700}
+.btn.sm{@apply px-2.5 py-1 text-xs}
+.pill{@apply inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold}
+.pill.Pending{@apply bg-amber-100 text-amber-700}
+.pill.Closed{@apply bg-emerald-100 text-emerald-700}
+.dd{@apply absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg}
+.opt{@apply cursor-pointer border-b border-slate-100 px-3 py-2 hover:bg-indigo-50}
+.opt small{@apply block text-slate-500}
+.opt.none{@apply cursor-default text-slate-500}
+.seg{@apply flex gap-2}
+.seg label{@apply m-0 flex-1 normal-case tracking-normal text-sm font-medium text-slate-700}
+.seg input{@apply hidden}
+.seg span{@apply block cursor-pointer rounded-lg border border-slate-300 bg-white py-2 text-center}
+.seg input:checked+span{@apply border-indigo-600 bg-indigo-600 text-white}
+nav button{@apply border-b-2 border-transparent px-4 py-3 text-sm text-slate-500 hover:text-slate-800}
+nav button.on{@apply border-indigo-600 font-semibold text-indigo-700}
+th{@apply bg-slate-50 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap}
+td{@apply px-3 py-2.5 align-top border-t border-slate-100}
+td small{@apply block text-slate-500}
+.ov{@apply fixed inset-0 z-50 hidden items-start justify-center overflow-auto bg-slate-900/50 p-3 sm:p-8}
+.ov.on{@apply flex}
+.note{@apply mt-1 text-xs text-slate-500}
+#toast{@apply fixed bottom-6 left-1/2 z-[99] hidden max-w-[90%] -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 text-white shadow-lg}
+#toast.on{@apply block}
+#toast.err{@apply bg-rose-600}
+#loading{@apply fixed inset-0 z-[90] hidden items-center justify-center bg-white/70 font-semibold backdrop-blur-sm}
+#loading.on{@apply flex}
+a{@apply text-indigo-600}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 </head>
 <body>
+<header class="bg-slate-900 text-white"><div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+  <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-lg">✉</div>
+  <div class="flex-1"><h1 class="text-lg font-semibold leading-tight">Query Register</h1><p class="text-xs text-slate-400">Pristine Pearl Pharma</p></div>
+  <button id="btnRefresh" class="btn sm !border-white/30 !bg-transparent !text-white hover:!bg-white/10">↻ Refresh</button>
+</div></header>
+<nav class="border-b border-slate-200 bg-white"><div class="mx-auto flex max-w-6xl gap-1 px-4">
+  <button class="on" data-tab="new">＋ New Query</button>
+  <button data-tab="list">☰ All Queries</button>
+</div></nav>
 
-<header>
-  <h1>Query Register</h1>
-  <button id="btnRefresh">↻ Refresh</button>
-</header>
-<nav>
-  <button class="on" data-tab="new">New Query</button>
-  <button data-tab="list">All Queries</button>
-</nav>
+<main class="mx-auto my-5 max-w-6xl px-4">
+  <div id="err" style="display:none" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800"></div>
 
-<main>
-  <div id="err" style="display:none;background:#fdecea;border:1px solid #f1b5ae;color:#8a1f13;padding:12px;border-radius:8px;margin-bottom:14px"></div>
-  <!-- NEW QUERY -->
-  <section id="tab-new" class="card">
+  <section id="tab-new" class="card p-5 sm:p-6">
     <form id="frm" autocomplete="off" onsubmit="return false">
-      <div class="grid">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div><label>Date</label><input type="date" id="fDate"></div>
         <div><label>Query ID</label><input id="fId" readonly placeholder="Auto-generated on save"></div>
 
-        <div class="full">
-          <label>Query From <span style="color:var(--err)">*</span></label>
+        <div class="md:col-span-2"><label>Query From <span class="text-rose-600">*</span></label>
           <div class="seg">
             <label><input type="radio" name="from" value="Staff"><span>Staff</span></label>
             <label><input type="radio" name="from" value="Customer" checked><span>Customer</span></label>
-          </div>
-        </div>
+          </div></div>
 
-        <div class="rel"><label id="lCust" class="r">Customer Name <span class="req">*</span></label>
-          <input id="fCust" placeholder="Type to search customer name / code / area">
-          <div class="dd" id="ddCust" hidden></div></div>
-        <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div class="relative"><label id="lCust" class="r">Customer Name <span class="req">*</span></label>
+          <input id="fCust" placeholder="Type to search customer name / code / area"><div class="dd" id="ddCust" hidden></div></div>
+        <div class="grid grid-cols-2 gap-3">
           <div><label>Customer Code</label><input id="fCustCode" readonly></div>
-          <div><label>Customer Team</label><input id="fCustTeam" readonly placeholder="Auto"></div>
-        </div>
+          <div><label>Customer Team</label><input id="fCustTeam" readonly placeholder="Auto"></div></div>
 
-        <div class="rel"><label id="lStaff">Staff Name <span class="req">*</span></label>
-          <input id="fStaff" placeholder="Type to search staff name / ID / designation">
-          <div class="dd" id="ddStaff" hidden></div></div>
-        <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div class="relative"><label id="lStaff">Staff Name <span class="req">*</span></label>
+          <input id="fStaff" placeholder="Type to search staff name / ID / designation"><div class="dd" id="ddStaff" hidden></div></div>
+        <div class="grid grid-cols-2 gap-3">
           <div><label>Staff ID</label><input id="fStaffId" readonly></div>
-          <div><label>Staff Team</label><input id="fStaffTeam" readonly placeholder="Auto"></div>
-        </div>
+          <div><label>Staff Team</label><input id="fStaffTeam" readonly placeholder="Auto"></div></div>
 
-        <div><label>Query Received Via <span style="color:var(--err)">*</span></label>
+        <div><label>Query Received Via <span class="text-rose-600">*</span></label>
           <select id="fVia"><option value="">Select…</option><option>Call</option><option>Mail</option><option>In-Person</option></select></div>
         <div><label>Status</label><input value="Pending" readonly></div>
 
         <div><label id="lMail">Mail ID</label><input type="email" id="fMail"><div class="note" id="nMail"></div></div>
         <div><label id="lMobile">Mobile</label><input id="fMobile" inputmode="tel"><div class="note" id="nMobile"></div></div>
 
-        <div class="full"><label>Query Subject <span style="color:var(--err)">*</span></label><input id="fSubject" maxlength="200"></div>
-        <div class="full"><label>Query Body <span style="color:var(--err)">*</span></label><textarea id="fBody" rows="5"></textarea></div>
-
-        <div class="full"><label>Reference Document (upload to Google Drive)</label>
-          <input type="file" id="fFile"><div class="note">Max 10 MB. Drive link and document ID are generated automatically.</div></div>
+        <div class="md:col-span-2"><label>Query Subject <span class="text-rose-600">*</span></label><input id="fSubject" maxlength="200"></div>
+        <div class="md:col-span-2"><label>Query Body <span class="text-rose-600">*</span></label><textarea id="fBody" rows="5"></textarea></div>
+        <div class="md:col-span-2"><label>Reference Documents (upload to Google Drive)</label>
+          <input type="file" id="fFile" multiple><div class="note">Multiple files allowed: max 10 MB each, 20 MB total. Saved in one Drive folder per query.</div></div>
       </div>
-      <div class="actions">
+      <div class="mt-5 flex justify-end gap-2">
         <button type="button" class="btn" id="btnReset">Clear</button>
         <button type="button" class="btn p" id="btnSave">Save Query</button>
       </div>
     </form>
   </section>
 
-  <!-- LIST -->
   <section id="tab-list" style="display:none">
-    <div class="stats">
-      <div class="stat"><b id="sTotal">0</b>Total</div>
-      <div class="stat"><b id="sPend" style="color:var(--warn)">0</b>Pending</div>
-      <div class="stat"><b id="sClosed" style="color:var(--ok)">0</b>Closed</div>
+    <div class="mb-4 flex flex-wrap gap-3">
+      <div class="card px-4 py-2"><b id="sTotal" class="block text-xl">0</b><span class="text-xs text-slate-500">Total</span></div>
+      <div class="card px-4 py-2"><b id="sPend" class="block text-xl text-amber-600">0</b><span class="text-xs text-slate-500">Pending</span></div>
+      <div class="card px-4 py-2"><b id="sClosed" class="block text-xl text-emerald-600">0</b><span class="text-xs text-slate-500">Closed</span></div>
     </div>
-    <div class="bar">
-      <div class="grow"><label>Search</label><input id="qSearch" placeholder="ID, name, subject, mobile…"></div>
-      <div><label>Status</label><select id="qStatus"><option value="">All</option><option>Pending</option><option>Closed</option></select></div>
-      <div><label>From</label><select id="qFrom"><option value="">All</option><option>Staff</option><option>Customer</option></select></div>
-      <div><label>Via</label><select id="qVia"><option value="">All</option><option>Call</option><option>Mail</option><option>In-Person</option></select></div>
-      <div><label>Date from</label><input type="date" id="qDf"></div>
-      <div><label>Date to</label><input type="date" id="qDt"></div>
+    <div class="card mb-4 flex flex-wrap items-end gap-3 p-4">
+      <div class="min-w-[200px] flex-1"><label>Search</label><input id="qSearch" placeholder="ID, name, subject, mobile…"></div>
+      <div class="w-32"><label>Status</label><select id="qStatus"><option value="">All</option><option>Pending</option><option>Closed</option></select></div>
+      <div class="w-32"><label>From</label><select id="qFrom"><option value="">All</option><option>Staff</option><option>Customer</option></select></div>
+      <div class="w-32"><label>Via</label><select id="qVia"><option value="">All</option><option>Call</option><option>Mail</option><option>In-Person</option></select></div>
+      <div class="w-40"><label>Date from</label><input type="date" id="qDf"></div>
+      <div class="w-40"><label>Date to</label><input type="date" id="qDt"></div>
     </div>
-    <div class="card tw" style="padding:0">
-      <table>
+    <div class="card overflow-x-auto">
+      <table class="w-full border-collapse">
         <thead><tr><th>Query ID</th><th>Date</th><th>From</th><th>Name</th><th>Subject</th><th>Via</th><th>Status</th><th>Closed</th><th>Document</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -168,27 +128,34 @@ a{color:var(--brand)}
   </section>
 </main>
 
-<!-- DETAIL / UPDATE -->
-<div class="ov" id="ov">
-  <div class="modal">
-    <h2 id="mTitle"></h2>
-    <div id="mPill"></div>
-    <div class="kv" id="mKv"></div>
-    <hr>
-    <div class="grid">
-      <div><label>Status</label>
-        <select id="uStatus"><option>Pending</option><option>Closed</option></select></div>
-      <div><label>Closed Date</label><input type="date" id="uClosed"></div>
-      <div class="full"><label id="lRes">Resolution Taken <span class="req">*</span></label><textarea id="uRes" rows="4"></textarea></div>
-      <div class="full"><label>Add / Replace Reference Document</label><input type="file" id="uFile"></div>
-    </div>
-    <div class="actions">
-      <button class="btn" id="mPdf">📄 Generate Query Document (PDF)</button>
-      <button class="btn" id="mClose">Close window</button>
-      <button class="btn p" id="mSave">Update Query</button>
-    </div>
+<!-- MAIL-STYLE VIEW -->
+<div class="ov" id="ov"><div class="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+  <div class="flex items-center justify-between gap-2 border-b border-slate-200 px-5 py-3">
+    <div class="flex items-center gap-2"><span id="mTitle" class="font-semibold text-slate-700"></span><span id="mPill"></span></div>
+    <div class="flex gap-2"><button class="btn sm" id="mPdf">📄 PDF</button><button class="btn sm" id="mClose">✕ Close</button></div>
   </div>
-</div>
+  <div id="mMail" class="px-5 py-4"></div>
+  <div class="rounded-b-2xl border-t border-slate-200 bg-slate-50 px-5 py-4">
+    <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">↩ Reply / Update</p>
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div><label>Status</label><select id="uStatus"><option>Pending</option><option>Closed</option></select></div>
+      <div><label>Closed Date</label><input type="date" id="uClosed"></div>
+      <div class="md:col-span-2"><label id="lRes">Resolution Taken <span class="req">*</span></label><textarea id="uRes" rows="4"></textarea></div>
+      <div class="md:col-span-2"><label>Add Reference Documents (multiple allowed)</label><input type="file" id="uFile" multiple></div>
+    </div>
+    <div class="mt-3 flex justify-end"><button class="btn p" id="mSave">Update Query</button></div>
+  </div>
+</div></div>
+
+<!-- DOCUMENT VIEWER -->
+<div class="ov" id="pv"><div class="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+  <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-2">
+    <span id="pvName" class="flex-1 truncate font-medium"></span>
+    <a id="pvOpen" target="_blank" rel="noopener" class="btn sm">Open in new tab ↗</a>
+    <button id="pvClose" class="btn sm">✕</button>
+  </div>
+  <iframe id="pvFrame" class="h-[75vh] w-full bg-slate-100" src="about:blank"></iframe>
+</div></div>
 
 <div id="toast"></div>
 <div id="loading">Please wait…</div>
@@ -196,13 +163,27 @@ a{color:var(--brand)}
 <script>
 /* ============ CONFIG ============ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbxO1MRAT2ICBJWcZTdCOkPjW-9j1b81TvU5HcpIQ5YbvWoTwSjK-1J7frXBw5TcGkd-/exec';
+const CUSTOMER_SHEET = { id: '1EYY6jkJ5DJ7RgRXhtVRmMtGwhso-0rDWXJpbISmFySU', gid: 0 };
+const STAFF_SHEET = { id: '1xC_TtvoGVLSSarPhGdHAR5hFKsV4U61k_PMS5TVm56w', gid: 1713960785 };
+const EXCLUDE_RESIGNED = true;
 const KEY = ''; // only if ACCESS_KEY is set in Code.gs
-const MAX_FILE = 10 * 1024 * 1024;
+const MAX_FILE = 10 * 1024 * 1024, MAX_TOTAL = 20 * 1024 * 1024;
 /* ================================= */
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+
+const fmtD = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : (s || ''); };
+const fmtDT = s => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(s || ''); if (!m) return fmtD(s);
+  let h = +m[4]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+  return m[3] + '-' + m[2] + '-' + m[1] + ' ' + String(h).padStart(2, '0') + ':' + m[5] + ' ' + ap;
+};
+const nowDT = () => fmtDT(today() + ' ' + new Date().toTimeString().slice(0, 5));
+const docFiles = q => { try { return JSON.parse(q.docFiles || '[]'); } catch (_) { return []; } };
+const custArea = q => q.custArea || ((M.customers.find(c => c.code === q.custCode) || {}).area) || '';
+const staffHQ = q => q.staffHQ || ((M.staff.find(x => x.id === q.staffId) || {}).hq) || '';
 
 let M = { customers: [], staff: [] };
 let Q = [];
@@ -219,19 +200,15 @@ const busy = on => $('loading').classList.toggle('on', on);
 async function api(action, payload) {
   let r, txt;
   try {
-    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 60000);
-    try {
-      if (payload === undefined) r = await fetch(API_URL + '?action=' + action + '&key=' + encodeURIComponent(KEY), { signal: ctl.signal });
-      else r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, key: KEY }, payload)), signal: ctl.signal });
-      txt = await r.text();
-    } finally { clearTimeout(tm); }
+    if (payload === undefined) r = await fetch(API_URL + '?action=' + action + '&key=' + encodeURIComponent(KEY));
+    else r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, key: KEY }, payload)) });
+    txt = await r.text();
   } catch (e) {
-    if (e.name === 'AbortError') throw new Error('Server did not respond within 60 seconds. Open the API URL + ?action=masters in a browser tab to see the real error, then Retry.');
     throw new Error('Cannot reach the server. Check internet, and that the Web App is deployed with access "Anyone".');
   }
   let j;
   try { j = JSON.parse(txt); } catch (e) {
-    throw new Error('Server returned a page instead of data (HTTP ' + r.status + '). URL used: ' + API_URL + ' | Reply: ' + txt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160));
+    throw new Error('Server returned a page instead of data (HTTP ' + r.status + '). Redeploy the Web App: Execute as "Me", access "Anyone", and use the latest /exec URL.');
   }
   if (!j.ok) throw new Error(j.error || 'Request failed');
   return j;
@@ -246,6 +223,55 @@ function readFile(f) {
     fr.onerror = () => rej(new Error('Could not read file'));
     fr.readAsDataURL(f);
   });
+}
+
+/* ---------- Masters: read straight from the Google Sheets (no Apps Script) ---------- */
+function parseCSV(t) {
+  const rows = []; let r = [], f = '', q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { r.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; r.push(f); f = ''; rows.push(r); r = []; }
+    else f += c;
+  }
+  if (f !== '' || r.length) { r.push(f); rows.push(r); }
+  return rows;
+}
+async function fetchSheet(sh) {
+  const r = await fetch('https://docs.google.com/spreadsheets/d/' + sh.id + '/gviz/tq?tqx=out:csv&headers=1&gid=' + sh.gid);
+  const t = await r.text();
+  if (!r.ok || /^\s*<(!doctype|html)/i.test(t)) throw new Error('Sheet not readable. Share it as "Anyone with the link - Viewer".');
+  const v = parseCSV(t);
+  return { h: v[0].map(x => x.trim().toLowerCase()), rows: v.slice(1) };
+}
+const colIdx = (h, names) => { for (const n of names) { const i = h.indexOf(n); if (i > -1) return i; } return -1; };
+async function loadMasters() {
+  try {
+    const [c, s] = await Promise.all([fetchSheet(CUSTOMER_SHEET), fetchSheet(STAFF_SHEET)]);
+    const cc = colIdx(c.h, ['code']), ca = colIdx(c.h, ['area']), ct = colIdx(c.h, ['team']), cn = colIdx(c.h, ['name']);
+    const si = colIdx(s.h, ['emp id']), sn = colIdx(s.h, ['emp name']), sr = colIdx(s.h, ['date of resignation']),
+      sd = colIdx(s.h, ['designation']), st = colIdx(s.h, ['team wise']), sp = colIdx(s.h, ['current phone']),
+      sm = colIdx(s.h, ['official e-mail id', 'official email id']),
+      sh = colIdx(s.h, ['hq', 'head quarter', 'headquarter', 'headquarters', 'hq name', 'current hq', 'hq wise']);
+    if ([cc, ca, ct, cn, si, sn, sr, sd, st, sp, sm].some(i => i < 0)) throw new Error('Master column not found');
+    const g = (r, i) => (i > -1 && r[i] !== undefined ? String(r[i]).trim() : '');
+    const customers = c.rows.filter(r => g(r, cn)).map(r => ({ code: g(r, cc), area: g(r, ca), team: g(r, ct), name: g(r, cn) }));
+    const staff = s.rows.filter(r => g(r, sn) && !(EXCLUDE_RESIGNED && g(r, sr)))
+      .map(r => ({ id: g(r, si), name: g(r, sn), designation: g(r, sd), team: g(r, st), mobile: g(r, sp), mail: g(r, sm), hq: g(r, sh) }));
+    return { customers, staff };
+  } catch (e) {
+    console.warn('Direct sheet read failed, using Apps Script:', e.message);
+    return await api('masters');
+  }
+}
+
+async function readFiles(list) {
+  const a = Array.from(list || []); let tot = 0;
+  for (const f of a) { if (f.size > MAX_FILE) throw new Error(f.name + ' exceeds 10 MB'); tot += f.size; }
+  if (tot > MAX_TOTAL) throw new Error('Total attachments exceed 20 MB');
+  return Promise.all(a.map(readFile));
 }
 
 /* ---------- Autocomplete ---------- */
@@ -332,12 +358,14 @@ async function saveQuery() {
 
   const btn = $('btnSave'); btn.disabled = true; busy(true);
   try {
-    const file = await readFile($('fFile').files[0]);
+    const files = await readFiles($('fFile').files);
     const r = await api('create', {
       date: $('fDate').value, from: f,
       custCode: sel.cust ? sel.cust.code : '', staffId: sel.staff ? sel.staff.id : '',
+      cust: sel.cust ? { code: sel.cust.code, name: sel.cust.name, team: sel.cust.team, area: sel.cust.area } : null,
+      staff: sel.staff ? { id: sel.staff.id, name: sel.staff.name, team: sel.staff.team, hq: sel.staff.hq, mail: sel.staff.mail, mobile: sel.staff.mobile } : null,
       via: $('fVia').value, mail: v('fMail'), mobile: v('fMobile'),
-      subject: v('fSubject'), body: v('fBody'), file
+      subject: v('fSubject'), body: v('fBody'), files
     });
     toast('Saved as ' + r.id + (r.warn ? ' — ' + r.warn : ''), !!r.warn);
     Q.unshift(r.query); renderList();
@@ -360,29 +388,46 @@ function renderList() {
   $('tbody').innerHTML = rows.map(q => {
     const main = q.from === 'Customer' ? q.custName : q.staffName;
     const subn = q.from === 'Customer' ? (q.staffName ? 'Staff: ' + q.staffName : '') : (q.custName ? 'Customer: ' + q.custName : '');
-    return `<tr data-id="${esc(q.id)}"><td>${esc(q.id)}</td><td>${esc(q.date)}</td><td>${esc(q.from)}</td>
+    const nf = docFiles(q).length || (q.docLink ? 1 : 0);
+    return `<tr data-id="${esc(q.id)}" class="cursor-pointer hover:bg-indigo-50/60"><td class="whitespace-nowrap font-medium text-indigo-700">${esc(q.id)}</td><td class="whitespace-nowrap">${fmtD(q.date)}</td><td>${esc(q.from)}</td>
       <td>${esc(main)}<small>${esc(subn)}</small></td><td>${esc(q.subject)}</td><td>${esc(q.via)}</td>
-      <td><span class="pill ${esc(q.status)}">${esc(q.status)}</span></td><td>${esc(q.closedDate)}</td>
-      <td><button class="btn sm" data-pdf="${esc(q.id)}">📄 PDF</button></td></tr>`;
-  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--mute);padding:24px">No queries</td></tr>';
+      <td><span class="pill ${esc(q.status)}">${esc(q.status)}</span></td><td class="whitespace-nowrap">${fmtD(q.closedDate)}</td>
+      <td class="whitespace-nowrap"><button class="btn sm" data-pdf="${esc(q.id)}">📄 PDF</button>${nf ? ` <span class="text-xs text-slate-500">📎${nf}</span>` : ''}</td></tr>`;
+  }).join('') || '<tr><td colspan="9" class="py-6 text-center text-slate-500">No queries</td></tr>';
 }
+
+let curFiles = [];
+const prevUrl = u => /\/file\/d\//.test(u) ? u.replace(/\/(view|edit)[^]*$/, '/preview') : u;
+function openPreview(f) {
+  $('pvName').textContent = f.n; $('pvOpen').href = f.u; $('pvFrame').src = prevUrl(f.u); $('pv').classList.add('on');
+}
+function closePreview() { $('pv').classList.remove('on'); $('pvFrame').src = 'about:blank'; }
 
 function openDetail(id) {
   cur = Q.find(q => q.id === id); if (!cur) return;
-  $('mTitle').textContent = cur.id;
-  $('mPill').innerHTML = `<span class="pill ${esc(cur.status)}">${esc(cur.status)}</span>`;
-  const kv = [
-    ['Date', cur.date], ['Query From', cur.from],
-    ['Customer', cur.custName ? `${cur.custName} (${cur.custCode}) · ${cur.custTeam}` : ''],
-    ['Staff', cur.staffName ? `${cur.staffName} (${cur.staffId}) · ${cur.staffTeam}` : ''],
-    ['Received Via', cur.via], ['Mail ID', cur.mail], ['Mobile', cur.mobile],
-    ['Subject', cur.subject], ['Body', cur.body]
-  ];
-  let h = kv.filter(x => x[1]).map(x => `<div>${x[0]}</div><div>${esc(x[1])}</div>`).join('');
-  h += `<div>Reference Doc</div><div>${cur.docLink ? `<a href="${esc(cur.docLink)}" target="_blank" rel="noopener">Open document</a> <small style="color:var(--mute)">(ID: ${esc(cur.docId)})</small>` : '—'}</div>`;
-  h += `<div>Created</div><div>${esc(cur.createdAt)}</div>`;
-  $('mKv').innerHTML = h;
-  $('uStatus').value = cur.status; $('uRes').value = cur.resolution; $('uClosed').value = cur.closedDate;
+  const q = cur, name = q.from === 'Customer' ? q.custName : q.staffName, addr = q.mail || q.mobile || '';
+  curFiles = docFiles(q); if (!curFiles.length && q.docLink) curFiles = [{ n: 'Reference document', u: q.docLink }];
+  const chip = (t, v) => v ? `<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"><b>${t}</b> ${esc(v)}</span>` : '';
+  const files = curFiles.map((f, i) => `<div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"><span>📎</span><span class="flex-1 truncate">${esc(f.n)}</span><button class="btn sm" data-view="${i}">👁 View</button><a class="btn sm" href="${esc(f.u)}" target="_blank" rel="noopener">↗</a></div>`).join('');
+  $('mTitle').textContent = q.id;
+  $('mPill').innerHTML = `<span class="pill ${esc(q.status)}">${esc(q.status)}</span>`;
+  $('mMail').innerHTML = `
+    <h2 class="text-xl font-semibold text-slate-900">${esc(q.subject)}</h2>
+    <div class="mt-3 flex items-start gap-3">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-700">${esc((String(name || '?').trim()[0] || '?').toUpperCase())}</div>
+      <div class="min-w-0 flex-1"><div class="flex flex-wrap items-baseline gap-x-2"><b>${esc(name)}</b><span class="text-slate-500">&lt;${esc(addr)}&gt;</span></div>
+        <div class="text-xs text-slate-500">to Query Desk · via ${esc(q.via)}${q.mail && q.mobile ? ' · ' + esc(q.mobile) : ''}</div></div>
+      <div class="text-right text-xs text-slate-500">${fmtD(q.date)}<br><span class="text-slate-400">${esc(q.id)}</span></div>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2">
+      ${chip('Customer', q.custName ? [q.custName, q.custCode, custArea(q), q.custTeam].filter(Boolean).join(' · ') : '')}
+      ${chip('Staff', q.staffName ? [q.staffName, q.staffId, staffHQ(q) && 'HQ: ' + staffHQ(q), q.staffTeam].filter(Boolean).join(' · ') : '')}
+    </div>
+    <div class="mt-4 whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 p-4 text-[15px] leading-relaxed">${esc(q.body)}</div>
+    ${files ? `<div class="mt-4"><p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Attachments (${curFiles.length})</p><div class="grid gap-2 sm:grid-cols-2">${files}</div></div>` : ''}
+    ${q.status === 'Closed' ? `<div class="mt-5 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-4"><div class="mb-1 text-xs font-semibold text-emerald-700">↩ Resolution · closed ${fmtD(q.closedDate)}</div><div class="whitespace-pre-wrap break-words">${esc(q.resolution)}</div></div>` : ''}
+    <p class="mt-4 text-xs text-slate-400">Created ${fmtDT(q.createdAt)}${q.updatedAt && q.updatedAt !== q.createdAt ? ' · Updated ' + fmtDT(q.updatedAt) : ''}</p>`;
+  $('uStatus').value = q.status; $('uRes').value = q.resolution; $('uClosed').value = q.closedDate;
   $('uFile').value = '';
   syncStatus();
   $('ov').classList.add('on');
@@ -401,8 +446,8 @@ async function updateQuery() {
   if (status === 'Closed' && !res) return toast('Resolution taken is required to close', true);
   const btn = $('mSave'); btn.disabled = true; busy(true);
   try {
-    const file = await readFile($('uFile').files[0]);
-    const r = await api('update', { id: cur.id, status, resolution: res, closedDate: $('uClosed').value, file });
+    const files = await readFiles($('uFile').files);
+    const r = await api('update', { id: cur.id, status, resolution: res, closedDate: $('uClosed').value, files });
     const i = Q.findIndex(q => q.id === cur.id); if (i > -1) Q[i] = r.query;
     renderList(); $('ov').classList.remove('on');
     toast(cur.id + ' updated' + (r.warn ? ' — ' + r.warn : ''), !!r.warn);
@@ -455,20 +500,20 @@ function makePdf(q) {
 
   header();
   section('Query Details');
-  row('Query ID', q.id); row('Date', q.date); row('Status', q.status);
+  row('Query ID', q.id); row('Date', fmtD(q.date)); row('Status', q.status);
   row('Query From', q.from); row('Received Via', q.via);
-  row('Created / Updated', (q.createdAt || '-') + '  /  ' + (q.updatedAt || '-'));
+  row('Created / Updated', (fmtDT(q.createdAt) || '-') + '  /  ' + (fmtDT(q.updatedAt) || '-'));
 
   section('Contact Details');
-  if (q.custName) row('Customer', `${q.custName}\nCode: ${q.custCode}   Team: ${q.custTeam}`);
-  if (q.staffName) row('Staff', `${q.staffName}\nID: ${q.staffId}   Team: ${q.staffTeam}`);
+  if (q.custName) row('Customer', `${q.custName}\nCode: ${q.custCode}   Area: ${custArea(q) || '-'}   Team: ${q.custTeam}`);
+  if (q.staffName) row('Staff', `${q.staffName}\nID: ${q.staffId}   HQ: ${staffHQ(q) || '-'}   Team: ${q.staffTeam}`);
   row('Mail ID', q.mail); row('Mobile', q.mobile);
 
   section('Query');
   row('Subject', q.subject); row('Body', q.body);
 
   section('Resolution');
-  row('Resolution Taken', q.resolution); row('Closed Date', q.closedDate);
+  row('Resolution Taken', q.resolution); row('Closed Date', fmtD(q.closedDate));
 
   const BOX = 56;
   section('Reference Document', BOX + 12);
@@ -480,14 +525,13 @@ function makePdf(q) {
     doc.setFillColor(0, 0, 0);
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
       if (qr.isDark(r, c)) doc.rect(x0 + c * cell, y0 + r * cell, cell + 0.05, cell + 0.05, 'F');
-    const tx = L + 56;
+    const tx = L + 56, fl = docFiles(q);
+    doc.link(x0, y0, size, size, { url: q.docLink });
     doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Scan QR code to view reference documents', tx, y + 10);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-    doc.text('Document ID: ' + clean(q.docId), tx, y + 17);
-    doc.setTextColor(0, 0, 200); doc.setFontSize(8);
-    const ll = doc.splitTextToSize(clean(q.docLink), W - 62);
-    doc.text(ll, tx, y + 24);
-    doc.link(tx, y + 20.5, W - 62, ll.length * 3.6, { url: q.docLink });
+    doc.text((fl.length || 1) + ' file(s) attached', tx, y + 17);
+    fl.slice(0, 6).forEach((f, i) => doc.text('- ' + clean(f.n).slice(0, 60), tx, y + 24 + i * 5));
+    if (fl.length > 6) doc.text('+ ' + (fl.length - 6) + ' more', tx, y + 54);
     doc.setTextColor(0);
   } else {
     doc.setFont('helvetica', 'italic'); doc.setFontSize(10);
@@ -495,7 +539,7 @@ function makePdf(q) {
   }
   y += BOX;
 
-  const pages = doc.getNumberOfPages(), stamp = new Date().toLocaleString('en-IN');
+  const pages = doc.getNumberOfPages(), stamp = nowDT();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
     doc.text('Generated on ' + stamp, L, 291); doc.text(`Page ${i} of ${pages}`, L + W, 291, { align: 'right' });
@@ -509,16 +553,15 @@ async function loadAll() {
   busy(true);
   const errs = [];
   $('err').style.display = 'none';
-  const [mr, lr] = await Promise.allSettled([api('masters'), api('list')]);
   try {
-    if (mr.status !== 'fulfilled') throw mr.reason;
-    M = mr.value;
+    const m = await loadMasters();
+    M = m;
     M.customers.forEach(c => c._s = (c.name + ' ' + c.code + ' ' + c.area).toLowerCase());
     M.staff.forEach(s => s._s = (s.name + ' ' + s.id + ' ' + s.designation + ' ' + s.team).toLowerCase());
   } catch (e) { errs.push('Customer/Staff master: ' + e.message); }
   try {
-    if (lr.status !== 'fulfilled') throw lr.reason;
-    Q = lr.value.queries; renderList();
+    const l = await api('list');
+    Q = l.queries; renderList();
   } catch (e) { errs.push('Query list: ' + e.message); }
   if (errs.length) {
     $('err').innerHTML = errs.map(esc).join('<br>') + '<br><button class="btn sm" style="margin-top:8px" onclick="loadAll()">Retry</button>';
@@ -547,6 +590,10 @@ $('mClose').onclick = () => $('ov').classList.remove('on');
 $('ov').onclick = e => { if (e.target === $('ov')) $('ov').classList.remove('on'); };
 $('mSave').onclick = updateQuery;
 $('mPdf').onclick = () => { if (cur) makePdf(cur); };
+
+$('mMail').onclick = e => { const b = e.target.closest('[data-view]'); if (b && curFiles[+b.dataset.view]) openPreview(curFiles[+b.dataset.view]); };
+$('pvClose').onclick = closePreview;
+$('pv').onclick = e => { if (e.target === $('pv')) closePreview(); };
 
 initCombos();
 resetForm();
