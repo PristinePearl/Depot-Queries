@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Query Register</title>
+<style>
+:root{
+  --bg:#f4f6fa;--card:#fff;--ink:#1c2533;--mute:#6b7688;--line:#dfe4ec;
+  --brand:#1f4e8c;--brand2:#163a69;--ok:#1b8a5a;--warn:#c77800;--err:#c0392b;--radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{background:var(--brand2);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;font-weight:600;flex:1}
+header button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer}
+nav{display:flex;gap:4px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:14px;color:var(--mute);border-bottom:3px solid transparent}
+nav button.on{color:var(--brand);border-color:var(--brand);font-weight:600}
+main{max-width:1150px;margin:18px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px}
+.full{grid-column:1/-1}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:12px;font-weight:600;color:var(--mute);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+label .req{color:var(--err);display:none}
+label.r .req{display:inline}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid #b9d0f0;border-color:var(--brand)}
+input[readonly],textarea[readonly]{background:#f0f2f6;color:#4a5568}
+textarea{resize:vertical;min-height:90px}
+.seg{display:flex;gap:8px}
+.seg label{flex:1;margin:0;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);font-weight:500}
+.seg input{display:none}
+.seg span{display:block;text-align:center;padding:9px;border:1px solid var(--line);border-radius:7px;cursor:pointer}
+.seg input:checked+span{background:var(--brand);color:#fff;border-color:var(--brand)}
+.rel{position:relative}
+.dd{position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1px solid var(--line);border-radius:7px;max-height:260px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.opt{padding:8px 10px;cursor:pointer;border-bottom:1px solid #f0f2f6}
+.opt:hover{background:#eef4fc}
+.opt small{display:block;color:var(--mute)}
+.opt.none{color:var(--mute);cursor:default}
+.actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+.btn{padding:10px 20px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;font:inherit}
+.btn.p{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
+.btn:disabled{opacity:.6;cursor:wait}
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.pill.Pending{background:#fff3dc;color:var(--warn)}
+.pill.Closed{background:#dff5ea;color:var(--ok)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:end}
+.bar>div{min-width:130px}
+.bar .grow{flex:1;min-width:200px}
+.stats{display:flex;gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px}
+.stat b{font-size:18px;display:block}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;color:var(--mute);background:#f8fafc;white-space:nowrap}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f3f7fd}
+td small{display:block;color:var(--mute)}
+.ov{position:fixed;inset:0;background:rgba(15,25,40,.5);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:50}
+.ov.on{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:820px;width:100%;padding:22px}
+.modal h2{margin:0 0 4px;font-size:18px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;margin:14px 0;font-size:14px}
+.kv div:nth-child(odd){color:var(--mute);font-weight:600;font-size:12px;text-transform:uppercase;padding-top:2px}
+.kv div{white-space:pre-wrap;word-break:break-word}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1c2533;color:#fff;padding:10px 18px;border-radius:8px;display:none;z-index:99;max-width:90%}
+#toast.err{background:var(--err)}
+#toast.on{display:block}
+.note{color:var(--mute);font-size:12px;margin-top:4px}
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:90;font-weight:600}
+#loading.on{display:flex}
+a{color:var(--brand)}
+.btn.sm{padding:4px 10px;font-size:12px;white-space:nowrap}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>Query Register</h1>
+  <button id="btnRefresh">↻ Refresh</button>
+</header>
+<nav>
+  <button class="on" data-tab="new">New Query</button>
+  <button data-tab="list">All Queries</button>
+</nav>
+
+<main>
+  <div id="err" style="display:none;background:#fdecea;border:1px solid #f1b5ae;color:#8a1f13;padding:12px;border-radius:8px;margin-bottom:14px"></div>
+  <!-- NEW QUERY -->
+  <section id="tab-new" class="card">
+    <form id="frm" autocomplete="off" onsubmit="return false">
+      <div class="grid">
+        <div><label>Date</label><input type="date" id="fDate"></div>
+        <div><label>Query ID</label><input id="fId" readonly placeholder="Auto-generated on save"></div>
+
+        <div class="full">
+          <label>Query From <span style="color:var(--err)">*</span></label>
+          <div class="seg">
+            <label><input type="radio" name="from" value="Staff"><span>Staff</span></label>
+            <label><input type="radio" name="from" value="Customer" checked><span>Customer</span></label>
+          </div>
+        </div>
+
+        <div class="rel"><label id="lCust" class="r">Customer Name <span class="req">*</span></label>
+          <input id="fCust" placeholder="Type to search customer name / code / area">
+          <div class="dd" id="ddCust" hidden></div></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label>Customer Code</label><input id="fCustCode" readonly></div>
+          <div><label>Customer Team</label><input id="fCustTeam" readonly placeholder="Auto"></div>
+        </div>
+
+        <div class="rel"><label id="lStaff">Staff Name <span class="req">*</span></label>
+          <input id="fStaff" placeholder="Type to search staff name / ID / designation">
+          <div class="dd" id="ddStaff" hidden></div></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label>Staff ID</label><input id="fStaffId" readonly></div>
+          <div><label>Staff Team</label><input id="fStaffTeam" readonly placeholder="Auto"></div>
+        </div>
+
+        <div><label>Query Received Via <span style="color:var(--err)">*</span></label>
+          <select id="fVia"><option value="">Select…</option><option>Call</option><option>Mail</option><option>In-Person</option></select></div>
+        <div><label>Status</label><input value="Pending" readonly></div>
+
+        <div><label id="lMail">Mail ID</label><input type="email" id="fMail"><div class="note" id="nMail"></div></div>
+        <div><label id="lMobile">Mobile</label><input id="fMobile" inputmode="tel"><div class="note" id="nMobile"></div></div>
+
+        <div class="full"><label>Query Subject <span style="color:var(--err)">*</span></label><input id="fSubject" maxlength="200"></div>
+        <div class="full"><label>Query Body <span style="color:var(--err)">*</span></label><textarea id="fBody" rows="5"></textarea></div>
+
+        <div class="full"><label>Reference Document (upload to Google Drive)</label>
+          <input type="file" id="fFile"><div class="note">Max 10 MB. Drive link and document ID are generated automatically.</div></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="btnReset">Clear</button>
+        <button type="button" class="btn p" id="btnSave">Save Query</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- LIST -->
+  <section id="tab-list" style="display:none">
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b>Total</div>
+      <div class="stat"><b id="sPend" style="color:var(--warn)">0</b>Pending</div>
+      <div class="stat"><b id="sClosed" style="color:var(--ok)">0</b>Closed</div>
+    </div>
+    <div class="bar">
+      <div class="grow"><label>Search</label><input id="qSearch" placeholder="ID, name, subject, mobile…"></div>
+      <div><label>Status</label><select id="qStatus"><option value="">All</option><option>Pending</option><option>Closed</option></select></div>
+      <div><label>From</label><select id="qFrom"><option value="">All</option><option>Staff</option><option>Customer</option></select></div>
+      <div><label>Via</label><select id="qVia"><option value="">All</option><option>Call</option><option>Mail</option><option>In-Person</option></select></div>
+      <div><label>Date from</label><input type="date" id="qDf"></div>
+      <div><label>Date to</label><input type="date" id="qDt"></div>
+    </div>
+    <div class="card tw" style="padding:0">
+      <table>
+        <thead><tr><th>Query ID</th><th>Date</th><th>From</th><th>Name</th><th>Subject</th><th>Via</th><th>Status</th><th>Closed</th><th>Document</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- DETAIL / UPDATE -->
+<div class="ov" id="ov">
+  <div class="modal">
+    <h2 id="mTitle"></h2>
+    <div id="mPill"></div>
+    <div class="kv" id="mKv"></div>
+    <hr>
+    <div class="grid">
+      <div><label>Status</label>
+        <select id="uStatus"><option>Pending</option><option>Closed</option></select></div>
+      <div><label>Closed Date</label><input type="date" id="uClosed"></div>
+      <div class="full"><label id="lRes">Resolution Taken <span class="req">*</span></label><textarea id="uRes" rows="4"></textarea></div>
+      <div class="full"><label>Add / Replace Reference Document</label><input type="file" id="uFile"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="mPdf">📄 Generate Query Document (PDF)</button>
+      <button class="btn" id="mClose">Close window</button>
+      <button class="btn p" id="mSave">Update Query</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loading">Please wait…</div>
+
+<script>
+/* ============ CONFIG ============ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxO1MRAT2ICBJWcZTdCOkPjW-9j1b81TvU5HcpIQ5YbvWoTwSjK-1J7frXBw5TcGkd-/exec';
+const KEY = ''; // only if ACCESS_KEY is set in Code.gs
+const MAX_FILE = 10 * 1024 * 1024;
+/* ================================= */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+
+let M = { customers: [], staff: [] };
+let Q = [];
+let sel = { cust: null, staff: null };
+let cur = null;
+
+/* ---------- UI helpers ---------- */
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = 'on' + (err ? ' err' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = '', err ? 5000 : 3500);
+}
+const busy = on => $('loading').classList.toggle('on', on);
+
+async function api(action, payload) {
+  let r, txt;
+  try {
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 60000);
+    try {
+      if (payload === undefined) r = await fetch(API_URL + '?action=' + action + '&key=' + encodeURIComponent(KEY), { signal: ctl.signal });
+      else r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, key: KEY }, payload)), signal: ctl.signal });
+      txt = await r.text();
+    } finally { clearTimeout(tm); }
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Server did not respond within 60 seconds. Open the API URL + ?action=masters in a browser tab to see the real error, then Retry.');
+    throw new Error('Cannot reach the server. Check internet, and that the Web App is deployed with access "Anyone".');
+  }
+  let j;
+  try { j = JSON.parse(txt); } catch (e) {
+    throw new Error('Server returned a page instead of data (HTTP ' + r.status + '). URL used: ' + API_URL + ' | Reply: ' + txt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160));
+  }
+  if (!j.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+function readFile(f) {
+  return new Promise((res, rej) => {
+    if (!f) return res(null);
+    if (f.size > MAX_FILE) return rej(new Error('File exceeds 10 MB'));
+    const fr = new FileReader();
+    fr.onload = () => res({ name: f.name, mime: f.type, base64: String(fr.result).split(',')[1] });
+    fr.onerror = () => rej(new Error('Could not read file'));
+    fr.readAsDataURL(f);
+  });
+}
+
+/* ---------- Autocomplete ---------- */
+function combo(input, box, source, label, sub, onPick, onClear) {
+  let items = [];
+  const show = () => {
+    const q = input.value.trim().toLowerCase(), res = [];
+    for (const it of source()) { if (!q || it._s.includes(q)) { res.push(it); if (res.length >= 50) break; } }
+    items = res;
+    box.innerHTML = res.map((it, i) => `<div class="opt" data-i="${i}">${esc(label(it))}<small>${esc(sub(it))}</small></div>`).join('') || '<div class="opt none">No match</div>';
+    box.hidden = false;
+  };
+  input.addEventListener('input', () => { onClear(); show(); });
+  input.addEventListener('focus', show);
+  input.addEventListener('blur', () => setTimeout(() => box.hidden = true, 150));
+  box.addEventListener('mousedown', e => {
+    const o = e.target.closest('.opt'); if (!o || o.classList.contains('none')) return;
+    e.preventDefault(); const it = items[+o.dataset.i];
+    input.value = label(it); box.hidden = true; onPick(it);
+  });
+}
+
+function initCombos() {
+  combo($('fCust'), $('ddCust'), () => M.customers,
+    c => c.name, c => `${c.code} · ${c.area} · ${c.team}`,
+    c => { sel.cust = c; $('fCustCode').value = c.code; $('fCustTeam').value = c.team; },
+    () => { sel.cust = null; $('fCustCode').value = ''; $('fCustTeam').value = ''; });
+  combo($('fStaff'), $('ddStaff'), () => M.staff,
+    s => s.name, s => `${s.id} · ${s.designation} · ${s.team}`,
+    s => { sel.staff = s; $('fStaffId').value = s.id; $('fStaffTeam').value = s.team; applyContact(); },
+    () => { sel.staff = null; $('fStaffId').value = ''; $('fStaffTeam').value = ''; applyContact(); });
+}
+
+/* ---------- Form logic ---------- */
+const fromVal = () => document.querySelector('input[name=from]:checked').value;
+
+function applyFrom() {
+  const f = fromVal();
+  $('lCust').classList.toggle('r', f === 'Customer');
+  $('lStaff').classList.toggle('r', f === 'Staff');
+  $('fCust').placeholder = f === 'Customer' ? 'Type to search customer (mandatory)' : 'Customer (optional)';
+  $('fStaff').placeholder = f === 'Staff' ? 'Type to search staff (mandatory)' : 'Staff (optional)';
+  applyContact(true);
+}
+
+let autoFilled = false;
+function applyContact(fromSwitch) {
+  const f = fromVal(), m = $('fMail'), t = $('fMobile');
+  if (f === 'Staff') {
+    const s = sel.staff;
+    m.value = s ? s.mail : ''; t.value = s ? s.mobile : '';
+    m.readOnly = !!(s && s.mail); t.readOnly = !!(s && s.mobile);
+    $('nMail').textContent = $('nMobile').textContent = 'Fetched from staff master';
+    autoFilled = true;
+  } else {
+    if (autoFilled) { m.value = ''; t.value = ''; autoFilled = false; }
+    m.readOnly = t.readOnly = false;
+    $('nMail').textContent = $('nMobile').textContent = 'Enter customer details (at least one)';
+  }
+}
+
+function resetForm() {
+  $('frm').reset();
+  sel = { cust: null, staff: null };
+  ['fCustCode', 'fCustTeam', 'fStaffId', 'fStaffTeam', 'fId'].forEach(i => $(i).value = '');
+  $('fDate').value = today();
+  autoFilled = false;
+  applyFrom();
+}
+
+async function saveQuery() {
+  const f = fromVal();
+  const v = id => $(id).value.trim();
+  if (!$('fDate').value) return toast('Date is required', true);
+  if ($('fCust').value.trim() && !sel.cust) return toast('Pick the customer from the list', true);
+  if ($('fStaff').value.trim() && !sel.staff) return toast('Pick the staff from the list', true);
+  if (f === 'Customer' && !sel.cust) return toast('Customer name is mandatory', true);
+  if (f === 'Staff' && !sel.staff) return toast('Staff name is mandatory', true);
+  if (!$('fVia').value) return toast('Select how the query was received', true);
+  if (!v('fMail') && !v('fMobile')) return toast('Mail ID or Mobile is required', true);
+  if (v('fMail') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('fMail'))) return toast('Invalid mail ID', true);
+  if (!v('fSubject')) return toast('Query subject is required', true);
+  if (!v('fBody')) return toast('Query body is required', true);
+
+  const btn = $('btnSave'); btn.disabled = true; busy(true);
+  try {
+    const file = await readFile($('fFile').files[0]);
+    const r = await api('create', {
+      date: $('fDate').value, from: f,
+      custCode: sel.cust ? sel.cust.code : '', staffId: sel.staff ? sel.staff.id : '',
+      via: $('fVia').value, mail: v('fMail'), mobile: v('fMobile'),
+      subject: v('fSubject'), body: v('fBody'), file
+    });
+    toast('Saved as ' + r.id + (r.warn ? ' — ' + r.warn : ''), !!r.warn);
+    Q.unshift(r.query); renderList();
+    resetForm();
+  } catch (e) { toast(e.message, true); }
+  btn.disabled = false; busy(false);
+}
+
+/* ---------- List ---------- */
+function renderList() {
+  const s = $('qSearch').value.trim().toLowerCase(), st = $('qStatus').value, fr = $('qFrom').value,
+    via = $('qVia').value, df = $('qDf').value, dt = $('qDt').value;
+  const rows = Q.filter(q =>
+    (!st || q.status === st) && (!fr || q.from === fr) && (!via || q.via === via) &&
+    (!df || q.date >= df) && (!dt || q.date <= dt) &&
+    (!s || [q.id, q.custName, q.staffName, q.subject, q.mobile, q.mail, q.custCode, q.staffId].join(' ').toLowerCase().includes(s)));
+  $('sTotal').textContent = Q.length;
+  $('sPend').textContent = Q.filter(q => q.status === 'Pending').length;
+  $('sClosed').textContent = Q.filter(q => q.status === 'Closed').length;
+  $('tbody').innerHTML = rows.map(q => {
+    const main = q.from === 'Customer' ? q.custName : q.staffName;
+    const subn = q.from === 'Customer' ? (q.staffName ? 'Staff: ' + q.staffName : '') : (q.custName ? 'Customer: ' + q.custName : '');
+    return `<tr data-id="${esc(q.id)}"><td>${esc(q.id)}</td><td>${esc(q.date)}</td><td>${esc(q.from)}</td>
+      <td>${esc(main)}<small>${esc(subn)}</small></td><td>${esc(q.subject)}</td><td>${esc(q.via)}</td>
+      <td><span class="pill ${esc(q.status)}">${esc(q.status)}</span></td><td>${esc(q.closedDate)}</td>
+      <td><button class="btn sm" data-pdf="${esc(q.id)}">📄 PDF</button></td></tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--mute);padding:24px">No queries</td></tr>';
+}
+
+function openDetail(id) {
+  cur = Q.find(q => q.id === id); if (!cur) return;
+  $('mTitle').textContent = cur.id;
+  $('mPill').innerHTML = `<span class="pill ${esc(cur.status)}">${esc(cur.status)}</span>`;
+  const kv = [
+    ['Date', cur.date], ['Query From', cur.from],
+    ['Customer', cur.custName ? `${cur.custName} (${cur.custCode}) · ${cur.custTeam}` : ''],
+    ['Staff', cur.staffName ? `${cur.staffName} (${cur.staffId}) · ${cur.staffTeam}` : ''],
+    ['Received Via', cur.via], ['Mail ID', cur.mail], ['Mobile', cur.mobile],
+    ['Subject', cur.subject], ['Body', cur.body]
+  ];
+  let h = kv.filter(x => x[1]).map(x => `<div>${x[0]}</div><div>${esc(x[1])}</div>`).join('');
+  h += `<div>Reference Doc</div><div>${cur.docLink ? `<a href="${esc(cur.docLink)}" target="_blank" rel="noopener">Open document</a> <small style="color:var(--mute)">(ID: ${esc(cur.docId)})</small>` : '—'}</div>`;
+  h += `<div>Created</div><div>${esc(cur.createdAt)}</div>`;
+  $('mKv').innerHTML = h;
+  $('uStatus').value = cur.status; $('uRes').value = cur.resolution; $('uClosed').value = cur.closedDate;
+  $('uFile').value = '';
+  syncStatus();
+  $('ov').classList.add('on');
+}
+
+function syncStatus() {
+  const closed = $('uStatus').value === 'Closed';
+  $('uClosed').disabled = !closed;
+  $('lRes').classList.toggle('r', closed);
+  if (closed && !$('uClosed').value) $('uClosed').value = today();
+  if (!closed) $('uClosed').value = '';
+}
+
+async function updateQuery() {
+  const status = $('uStatus').value, res = $('uRes').value.trim();
+  if (status === 'Closed' && !res) return toast('Resolution taken is required to close', true);
+  const btn = $('mSave'); btn.disabled = true; busy(true);
+  try {
+    const file = await readFile($('uFile').files[0]);
+    const r = await api('update', { id: cur.id, status, resolution: res, closedDate: $('uClosed').value, file });
+    const i = Q.findIndex(q => q.id === cur.id); if (i > -1) Q[i] = r.query;
+    renderList(); $('ov').classList.remove('on');
+    toast(cur.id + ' updated' + (r.warn ? ' — ' + r.warn : ''), !!r.warn);
+  } catch (e) { toast(e.message, true); }
+  btn.disabled = false; busy(false);
+}
+
+/* ---------- Query document (PDF) ---------- */
+function makePdf(q) {
+  if (!window.jspdf || typeof qrcode === 'undefined') return toast('PDF libraries failed to load. Check internet connection and refresh.', true);
+  const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  doc.setLineHeightFactor(1.27);
+  const L = 15, W = 180, LW = 48, B = 280, LH = 4.5;
+  let y = 0;
+  const clean = s => String(s ?? '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/\u20B9/g, 'Rs.').replace(/[\u2022\u00B7]/g, '-').replace(/\t/g, ' ').replace(/\r/g, '').replace(/[^\n\x20-\x7E\xA0-\xFF]/g, '?');
+
+  const header = () => {
+    doc.setFillColor(22, 58, 105); doc.rect(0, 0, 210, 24, 'F');
+    doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+    doc.text('PRISTINE PEARL PHARMA PVT LTD', L, 11);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text('Query Document', L, 18);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.text(clean(q.id), 195, 11, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.text('Status: ' + q.status, 195, 18, { align: 'right' });
+    doc.setTextColor(0); y = 31;
+  };
+  const newPage = () => { doc.addPage(); header(); };
+  const section = (t, need = 16) => {
+    if (y + need > B) newPage();
+    y += 3; doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(22, 58, 105);
+    doc.text(t.toUpperCase(), L, y + 4); doc.setDrawColor(22, 58, 105); doc.line(L, y + 6, L + W, y + 6);
+    doc.setTextColor(0); doc.setDrawColor(150); y += 8;
+  };
+  const row = (label, val) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    let lines = clean(val).trim() || '-';
+    lines = lines.split('\n').flatMap(t => doc.splitTextToSize(t || ' ', W - LW - 4));
+    let first = true;
+    while (lines.length) {
+      let n = Math.floor((B - y - 4) / LH);
+      if (n < 1) { newPage(); continue; }
+      const part = lines.splice(0, n), h = part.length * LH + 4;
+      doc.setDrawColor(150); doc.setFillColor(238, 242, 248);
+      doc.rect(L, y, LW, h, 'FD'); doc.rect(L + LW, y, W - LW, h);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.text(first ? label : label + ' (cont.)', L + 2, y + 5);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(part, L + LW + 2, y + 5);
+      y += h; first = false;
+      if (lines.length) newPage();
+    }
+  };
+
+  header();
+  section('Query Details');
+  row('Query ID', q.id); row('Date', q.date); row('Status', q.status);
+  row('Query From', q.from); row('Received Via', q.via);
+  row('Created / Updated', (q.createdAt || '-') + '  /  ' + (q.updatedAt || '-'));
+
+  section('Contact Details');
+  if (q.custName) row('Customer', `${q.custName}\nCode: ${q.custCode}   Team: ${q.custTeam}`);
+  if (q.staffName) row('Staff', `${q.staffName}\nID: ${q.staffId}   Team: ${q.staffTeam}`);
+  row('Mail ID', q.mail); row('Mobile', q.mobile);
+
+  section('Query');
+  row('Subject', q.subject); row('Body', q.body);
+
+  section('Resolution');
+  row('Resolution Taken', q.resolution); row('Closed Date', q.closedDate);
+
+  const BOX = 56;
+  section('Reference Document', BOX + 12);
+  y += 2;
+  doc.setDrawColor(150); doc.rect(L, y, W, BOX);
+  if (q.docLink) {
+    const qr = qrcode(0, 'M'); qr.addData(q.docLink); qr.make();
+    const n = qr.getModuleCount(), size = 42, cell = size / n, x0 = L + 6, y0 = y + 7;
+    doc.setFillColor(0, 0, 0);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
+      if (qr.isDark(r, c)) doc.rect(x0 + c * cell, y0 + r * cell, cell + 0.05, cell + 0.05, 'F');
+    const tx = L + 56;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Scan QR code to view reference documents', tx, y + 10);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text('Document ID: ' + clean(q.docId), tx, y + 17);
+    doc.setTextColor(0, 0, 200); doc.setFontSize(8);
+    const ll = doc.splitTextToSize(clean(q.docLink), W - 62);
+    doc.text(ll, tx, y + 24);
+    doc.link(tx, y + 20.5, W - 62, ll.length * 3.6, { url: q.docLink });
+    doc.setTextColor(0);
+  } else {
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(10);
+    doc.text('No reference document attached.', L + 4, y + 10);
+  }
+  y += BOX;
+
+  const pages = doc.getNumberOfPages(), stamp = new Date().toLocaleString('en-IN');
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text('Generated on ' + stamp, L, 291); doc.text(`Page ${i} of ${pages}`, L + W, 291, { align: 'right' });
+  }
+  doc.save(q.id + '.pdf');
+  toast('Downloaded ' + q.id + '.pdf');
+}
+
+/* ---------- Load ---------- */
+async function loadAll() {
+  busy(true);
+  const errs = [];
+  $('err').style.display = 'none';
+  const [mr, lr] = await Promise.allSettled([api('masters'), api('list')]);
+  try {
+    if (mr.status !== 'fulfilled') throw mr.reason;
+    M = mr.value;
+    M.customers.forEach(c => c._s = (c.name + ' ' + c.code + ' ' + c.area).toLowerCase());
+    M.staff.forEach(s => s._s = (s.name + ' ' + s.id + ' ' + s.designation + ' ' + s.team).toLowerCase());
+  } catch (e) { errs.push('Customer/Staff master: ' + e.message); }
+  try {
+    if (lr.status !== 'fulfilled') throw lr.reason;
+    Q = lr.value.queries; renderList();
+  } catch (e) { errs.push('Query list: ' + e.message); }
+  if (errs.length) {
+    $('err').innerHTML = errs.map(esc).join('<br>') + '<br><button class="btn sm" style="margin-top:8px" onclick="loadAll()">Retry</button>';
+    $('err').style.display = 'block';
+  }
+  busy(false);
+}
+
+/* ---------- Events ---------- */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  $('tab-new').style.display = b.dataset.tab === 'new' ? '' : 'none';
+  $('tab-list').style.display = b.dataset.tab === 'list' ? '' : 'none';
+});
+document.querySelectorAll('input[name=from]').forEach(r => r.onchange = applyFrom);
+$('btnSave').onclick = saveQuery;
+$('btnReset').onclick = resetForm;
+$('btnRefresh').onclick = loadAll;
+['qSearch', 'qStatus', 'qFrom', 'qVia', 'qDf', 'qDt'].forEach(i => $(i).addEventListener('input', renderList));
+$('tbody').onclick = e => {
+  const pb = e.target.closest('[data-pdf]');
+  if (pb) { e.stopPropagation(); const q = Q.find(x => x.id === pb.dataset.pdf); if (q) makePdf(q); return; }
+  const tr = e.target.closest('tr[data-id]'); if (tr) openDetail(tr.dataset.id); };
+$('uStatus').onchange = syncStatus;
+$('mClose').onclick = () => $('ov').classList.remove('on');
+$('ov').onclick = e => { if (e.target === $('ov')) $('ov').classList.remove('on'); };
+$('mSave').onclick = updateQuery;
+$('mPdf').onclick = () => { if (cur) makePdf(cur); };
+
+initCombos();
+resetForm();
+loadAll();
+</script>
+</body>
+</html>
