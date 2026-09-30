@@ -46,6 +46,7 @@ td small{@apply block text-slate-500}
 a{@apply text-indigo-600}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 </head>
 <body>
@@ -161,11 +162,10 @@ a{@apply text-indigo-600}
 <div class="ov" id="qd" style="z-index:60"><div class="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl">
   <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-2">
     <span class="text-lg">📄</span><span id="qdName" class="flex-1 truncate font-medium"></span>
-    <a id="qdOpen" target="_blank" rel="noopener" class="btn sm">Open in new tab ↗</a>
     <button id="qdDl" class="btn sm p">⬇ Download PDF</button>
     <button id="qdClose" class="btn sm">✕</button>
   </div>
-  <iframe id="qdFrame" class="h-[78vh] w-full bg-slate-200" src="about:blank"></iframe>
+  <div id="qdPages" class="h-[78vh] overflow-auto bg-slate-300 p-3 sm:p-5"></div>
 </div></div>
 
 <div id="toast"></div>
@@ -489,142 +489,180 @@ function loadLogo() {
 async function buildPdf(q) {
   if (!window.jspdf || typeof qrcode === 'undefined') throw new Error('PDF libraries failed to load. Check internet connection and refresh.');
   const logo = await loadLogo();
+  let d;
+  for (const sc of [1, 0.93, 0.86, 0.8, 0.74, 0.68]) { d = renderPdf(q, logo, sc); if (d.getNumberOfPages() === 1) break; }
+  return d;
+}
+
+function renderPdf(q, logo, sc) {
   const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
   doc.setLineHeightFactor(1.3);
-  const NAVY = [16, 42, 84], TEAL = [13, 148, 136], INK = [30, 41, 59], MUTE = [100, 116, 139], LINE = [226, 232, 240], SOFT = [244, 247, 251];
-  const GREEN = [5, 150, 105], AMBER = [217, 119, 6];
+  const NAVY = [16, 42, 84], TEAL = [13, 148, 136], INK = [30, 41, 59], MUTE = [100, 116, 139], GRID = [160, 172, 190], SOFT = [238, 243, 249];
+  const GREEN = [5, 150, 105], AMBER = [217, 119, 6], WHITE = [255, 255, 255];
   const fill = c => doc.setFillColor(...c), ink = c => doc.setTextColor(...c), stroke = c => doc.setDrawColor(...c);
   const font = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
   const clean = s => String(s ?? '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/\u20B9/g, 'Rs.').replace(/[\u2022\u00B7]/g, '-').replace(/\t/g, ' ').replace(/\r/g, '').replace(/[^\n\x20-\x7E\xA0-\xFF]/g, '?');
-  const L = 14, W = 182, B = 278, LH = 4.8;
+  const L = 14, W = 182, B = 276, LH = 4.6 * sc, LW = 32, TO = 3.2 + 1.4 * sc, RH = 7 * sc;
   const closed = q.status === 'Closed', stCol = closed ? GREEN : AMBER;
   const darkBand = !(logo && !logo.light);
-  let y = 0;
+  const fl = docFiles(q).length ? docFiles(q) : (q.docLink ? [{ n: 'Reference document', u: q.docLink }] : []);
+  let y = 0, secNo = 0;
 
   const header = first => {
-    const H = first ? 32 : 18;
-    fill(darkBand ? NAVY : [255, 255, 255]); doc.rect(0, 0, 210, H, 'F');
+    const H = first ? 23 : 15;
+    fill(darkBand ? NAVY : WHITE); doc.rect(0, 0, 210, H, 'F');
     fill(TEAL); doc.rect(0, H, 210, 1.4, 'F');
-    const tc = darkBand ? [255, 255, 255] : NAVY;
+    const tc = darkBand ? WHITE : NAVY;
     if (logo) {
-      const lh = first ? 17 : 9, lw = Math.min(lh * logo.w / logo.h, 70);
+      const lh = first ? 15 : 8, lw = Math.min(lh * logo.w / logo.h, 60);
       doc.addImage(logo.data, 'PNG', L, (H - lh) / 2, lw, lw * logo.h / logo.w);
-    } else { ink(tc); font('bold', first ? 14 : 10); doc.text('PRISTINE PEARL PHARMA', L, H / 2 + 1.5); }
+    }
     ink(tc);
     if (first) {
-      font('bold', 8); doc.text('QUERY DOCUMENT', 196, 12, { align: 'right' });
-      font('bold', 17); doc.text(clean(q.id), 196, 22, { align: 'right' });
-    } else { font('bold', 10); doc.text(clean(q.id) + '  |  Query Document', 196, 10.5, { align: 'right' }); }
-    ink(INK); y = H + 8;
+      font('bold', 15); doc.text('DEPOT QUERIES DESK', 196, 12, { align: 'right' });
+      font('normal', 8.5); doc.text('Pristine Pearl Pharma Pvt Ltd', 196, 18.5, { align: 'right' });
+    } else { font('bold', 9); doc.text('DEPOT QUERIES DESK  |  Query Document  |  ' + clean(q.id), 196, 9.5, { align: 'right' }); }
+    ink(INK); y = H + 9;
   };
   const newPage = () => { doc.addPage(); header(false); };
-  const sec = (t, need = 24) => {
+  const sec = (t, need = 30) => {
     if (y + need > B) newPage();
-    font('bold', 8); ink(TEAL); doc.setCharSpace(1); doc.text(t.toUpperCase(), L, y + 3); doc.setCharSpace(0);
-    stroke(LINE); doc.setLineWidth(0.3); doc.line(L, y + 5, L + W, y + 5); y += 9;
+    secNo++; y += 2.5 * sc;
+    fill(NAVY); doc.rect(L, y, W, 6.4, 'F');
+    fill(TEAL); doc.rect(L, y, 1.6, 6.4, 'F');
+    ink(WHITE); font('bold', 9); doc.setCharSpace(0.6); doc.text(secNo + '.  ' + t.toUpperCase(), L + 5, y + 4.4); doc.setCharSpace(0);
+    ink(INK); y += 6.4;
   };
-  const flow = (text, bar, size = 10) => {
-    font('normal', size);
-    let lines = clean(text).trim().split('\n').flatMap(t => doc.splitTextToSize(t || ' ', W - 10));
+  // row of cells: [{l:label,v:value,w:valueWidth}] -> label|value|label|value
+  const wrap = (v, w) => { font('normal', 9.5 * sc); return clean(v).trim().split('\n').flatMap(t => doc.splitTextToSize(t || ' ', w - 4)); };
+  const row = cells => {
+    const ls = cells.map(c => wrap(c.v || '-', c.w));
+    const h = Math.max(...ls.map(a => a.length)) * LH + 3.6 * sc;
+    if (y + h > B) newPage();
+    let x = L;
+    cells.forEach((c, i) => {
+      stroke(GRID); doc.setLineWidth(0.2);
+      fill(SOFT); doc.rect(x, y, LW, h, 'FD');
+      font('bold', 8 * sc); ink(NAVY); doc.text(doc.splitTextToSize(c.l, LW - 4), x + 2, y + TO);
+      fill(WHITE); doc.rect(x + LW, y, c.w, h, 'FD');
+      ink(c.col || INK); font(c.bold ? 'bold' : 'normal', 9.5 * sc); doc.text(ls[i], x + LW + 2, y + TO);
+      x += LW + c.w;
+    });
+    ink(INK); y += h;
+  };
+  const half = (l1, v1, l2, v2, o1 = {}, o2 = {}) => row([{ l: l1, v: v1, w: 59, ...o1 }, { l: l2, v: v2, w: 59, ...o2 }]);
+  const full = (l, v) => {           // paginates long text
+    let lines = wrap(v || '-', W - LW), first = true;
     while (lines.length) {
-      const n = Math.floor((B - y - 6) / LH); if (n < 1) { newPage(); continue; }
-      const part = lines.splice(0, n), h = part.length * LH + 6;
-      fill(SOFT); doc.rect(L, y, W, h, 'F'); fill(bar); doc.rect(L, y, 1.4, h, 'F');
-      ink(INK); font('normal', size); doc.text(part, L + 6, y + 6);
-      y += h; if (lines.length) newPage();
+      const n = Math.floor((B - y - 4) / LH); if (n < 1) { newPage(); continue; }
+      const part = lines.splice(0, n), h = part.length * LH + 3.6 * sc;
+      stroke(GRID); doc.setLineWidth(0.2);
+      fill(SOFT); doc.rect(L, y, LW, h, 'FD'); fill(WHITE); doc.rect(L + LW, y, W - LW, h, 'FD');
+      font('bold', 8 * sc); ink(NAVY); doc.text(first ? l : l + ' (cont.)', L + 2, y + TO);
+      font('normal', 9.5 * sc); ink(INK); doc.text(part, L + LW + 2, y + TO);
+      y += h; first = false; if (lines.length) newPage();
     }
   };
 
   header(true);
 
-  // summary cards
-  const cw = (W - 9) / 4, ch = 17;
-  [['Query ID', q.id], ['Date', fmtD(q.date)], ['Received Via', q.via], ['Status', q.status]].forEach(([l, v], i) => {
-    const x = L + i * (cw + 3);
-    stroke(LINE); fill([255, 255, 255]); doc.roundedRect(x, y, cw, ch, 2, 2, 'FD');
-    font('bold', 7); ink(MUTE); doc.text(l.toUpperCase(), x + 4, y + 5.5);
-    if (l === 'Status') {
-      font('bold', 8.5); const tw = doc.getTextWidth(clean(v)) + 8;
-      fill(stCol); doc.roundedRect(x + 4, y + 8, tw, 6, 3, 3, 'F'); ink([255, 255, 255]); doc.text(clean(v), x + 8, y + 12.1);
-    } else { font('bold', 10); ink(INK); doc.text(doc.splitTextToSize(clean(v) || '-', cw - 8)[0], x + 4, y + 12.5); }
+  // title block
+  font('bold', 17); ink(NAVY); doc.text('QUERY DOCUMENT', L, y + 6);
+  font('normal', 9); ink(MUTE); doc.text('Reference No: ' + clean(q.id) + '     Date: ' + clean(fmtD(q.date)), L, y + 12);
+  font('bold', 9); const pw = doc.getTextWidth(clean(q.status).toUpperCase()) + 10;
+  fill(stCol); doc.roundedRect(L + W - pw, y + 1, pw, 8, 4, 4, 'F'); ink(WHITE); doc.text(clean(q.status).toUpperCase(), L + W - pw + 5, y + 6.3);
+  y += 15; stroke(NAVY); doc.setLineWidth(0.6); doc.line(L, y, L + W, y); y += 1;
+
+  sec('Query Information');
+  half('Query ID', q.id, 'Date', fmtD(q.date), { bold: 1 });
+  half('Query From', q.from, 'Received Via', q.via);
+  half('Status', q.status, 'Closed Date', closed ? fmtD(q.closedDate) : '-', { bold: 1, col: stCol });
+  half('Created On', fmtDT(q.createdAt), 'Last Updated', fmtDT(q.updatedAt));
+
+  if (q.custName) {
+    sec('Customer Details', 24);
+    half('Customer Name', q.custName, 'Customer Code', q.custCode, { bold: 1 });
+    half('Area', custArea(q), 'Customer Team', q.custTeam);
+  }
+  if (q.staffName) {
+    sec('Staff Details', 24);
+    half('Staff Name', q.staffName, 'Staff ID', q.staffId, { bold: 1 });
+    half('HQ / Location', staffHQ(q), 'Staff Team', q.staffTeam);
+  }
+
+  sec('Contact Details', 22);
+  half('Mail ID', q.mail, 'Mobile', q.mobile);
+
+  sec('Query Details', 34);
+  full('Subject', q.subject);
+  full('Description', q.body);
+
+  sec('Resolution', 34);
+  full('Resolution Taken', q.resolution || (closed ? '-' : 'Pending - no resolution recorded yet.'));
+  half('Resolution Status', q.status, 'Closed Date', closed ? fmtD(q.closedDate) : '-', { bold: 1, col: stCol });
+
+  // reference documents
+  const rows = Math.min(fl.length, 6), th = Math.max(7 + rows * RH, q.docLink ? 37 : 8);
+  sec('Reference Documents', th + 8);
+  const tw = q.docLink ? W - 42 : W;
+  stroke(GRID); doc.setLineWidth(0.2);
+  fill(SOFT); doc.rect(L, y, 12, 7, 'FD'); doc.rect(L + 12, y, tw - 12, 7, 'FD');
+  font('bold', 8); ink(NAVY); doc.text('No.', L + 2, y + TO); doc.text('File Name', L + 14, y + TO);
+  fill(WHITE);
+  if (!fl.length) { doc.rect(L, y + 7, tw, 8, 'FD'); font('italic', 9.5); ink(MUTE); doc.text('No reference document attached.', L + 3, y + 12.2); }
+  fl.slice(0, 6).forEach((f, i) => {
+    const yy = y + 7 + i * RH;
+    fill(WHITE); doc.rect(L, yy, 12, RH, 'FD'); doc.rect(L + 12, yy, tw - 12, RH, 'FD');
+    font('normal', 9.5); ink(INK); doc.text(String(i + 1), L + 2, yy + 5);
+    ink(f.u ? [37, 99, 235] : INK); doc.text(doc.splitTextToSize(clean(f.n), tw - 18)[0], L + 14, yy + 5);
+    if (f.u) doc.link(L + 12, yy, tw - 12, RH, { url: f.u });
   });
-  y += ch + 3;
-  font('normal', 7.5); ink(MUTE);
-  doc.text('Created ' + (clean(fmtDT(q.createdAt)) || '-') + '   |   Last updated ' + (clean(fmtDT(q.updatedAt)) || '-'), L, y + 3); y += 8;
-
-  // parties
-  sec('Raised By & Contact');
-  const cards = [];
-  cards.push({ t: 'Query from', r: [[q.from, 1]] });
-  if (q.custName) cards.push({ t: 'Customer', r: [[q.custName, 1], ['Code: ' + (q.custCode || '-')], ['Area: ' + (custArea(q) || '-')], ['Team: ' + (q.custTeam || '-')]] });
-  if (q.staffName) cards.push({ t: 'Staff', r: [[q.staffName, 1], ['ID: ' + (q.staffId || '-')], ['HQ: ' + (staffHQ(q) || '-')], ['Team: ' + (q.staffTeam || '-')]] });
-  cards.push({ t: 'Contact', r: [['Mail: ' + (q.mail || '-')], ['Mobile: ' + (q.mobile || '-')]] });
-  const gap = 3, pw = (W - gap * (cards.length - 1)) / cards.length;
-  font('normal', 9);
-  cards.forEach(c => c.l = c.r.flatMap(([t, b]) => { font(b ? 'bold' : 'normal', 9); return doc.splitTextToSize(clean(t), pw - 8).map(s => [s, b]); }));
-  const phh = 10 + Math.max(...cards.map(c => c.l.length)) * 4.6;
-  if (y + phh > B) newPage();
-  cards.forEach((c, i) => {
-    const x = L + i * (pw + gap);
-    stroke(LINE); fill([255, 255, 255]); doc.roundedRect(x, y, pw, phh, 2, 2, 'FD');
-    font('bold', 7); ink(TEAL); doc.text(c.t.toUpperCase(), x + 4, y + 5.5);
-    c.l.forEach(([s, b], k) => { font(b ? 'bold' : 'normal', 9); ink(b ? INK : MUTE); doc.text(s, x + 4, y + 11 + k * 4.6); });
-  });
-  y += phh + 6;
-
-  // subject + body
-  sec('Query', 34);
-  font('bold', 13); ink(NAVY);
-  const sub = doc.splitTextToSize(clean(q.subject) || '-', W);
-  doc.text(sub, L, y + 4); y += sub.length * 6 + 4;
-  flow(q.body || '-', TEAL);
-  y += 5;
-
-  // resolution
-  sec('Resolution', 30);
-  flow(q.resolution || (closed ? '-' : 'No resolution recorded yet - query is pending.'), stCol);
-  font('normal', 8.5); ink(MUTE);
-  doc.text(closed ? 'Closed on ' + (clean(fmtD(q.closedDate)) || '-') : 'Status: Pending', L, y + 5); y += 11;
-
-  // reference docs
-  const BOX = 52;
-  sec('Reference Documents', BOX + 12);
-  stroke(LINE); fill([255, 255, 255]); doc.roundedRect(L, y, W, BOX, 2, 2, 'FD');
+  if (fl.length > 6) { font('italic', 8.5); ink(MUTE); doc.text('+ ' + (fl.length - 6) + ' more file(s) - scan QR code to view all', L + 2, y + 7 + 6 * RH + 4); }
   if (q.docLink) {
     const qr = qrcode(0, 'M'); qr.addData(q.docLink); qr.make();
-    const n = qr.getModuleCount(), size = 40, cell = size / n, x0 = L + 6, y0 = y + 6;
+    const n = qr.getModuleCount(), size = 30, cell = size / n, x0 = L + W - 34, y0 = y + 1;
+    fill(WHITE); doc.rect(x0 - 2, y0 - 1, size + 4, size + 2, 'F');
     fill([0, 0, 0]);
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
       if (qr.isDark(r, c)) doc.rect(x0 + c * cell, y0 + r * cell, cell + 0.05, cell + 0.05, 'F');
     doc.link(x0, y0, size, size, { url: q.docLink });
-    const tx = L + 54, fl = docFiles(q);
-    font('bold', 11); ink(NAVY); doc.text('Scan to view reference documents', tx, y + 10);
-    font('normal', 9); ink(MUTE); doc.text((fl.length || 1) + ' file(s) attached', tx, y + 16);
-    ink(INK); fl.slice(0, 6).forEach((f, i) => doc.text('-  ' + clean(f.n).slice(0, 60), tx, y + 23 + i * 5));
-    if (fl.length > 6) doc.text('+ ' + (fl.length - 6) + ' more', tx, y + 23 + 6 * 5);
-  } else { font('italic', 10); ink(MUTE); doc.text('No reference document attached.', L + 5, y + 10); }
-  y += BOX;
+    font('normal', 7); ink(MUTE); doc.text('Scan to view files', x0 + size / 2, y0 + size + 4.5, { align: 'center' });
+  }
+  y += th + 4;
 
-  // footer
+
   const pages = doc.getNumberOfPages(), stamp = nowDT();
   for (let i = 1; i <= pages; i++) {
-    doc.setPage(i); stroke(LINE); doc.line(L, 285, L + W, 285);
+    doc.setPage(i); stroke(GRID); doc.setLineWidth(0.2); doc.line(L, 285, L + W, 285);
     font('normal', 7.5); ink(MUTE);
-    doc.text('Pristine Pearl Pharma Pvt Ltd  |  Generated on ' + stamp, L, 290);
+    doc.text('Depot Queries Desk  |  Pristine Pearl Pharma Pvt Ltd  |  ' + clean(q.id) + '  |  Generated on ' + stamp, L, 290);
     doc.text(`Page ${i} of ${pages}`, L + W, 290, { align: 'right' });
   }
   return doc;
 }
 
-let pdfUrl = null, pdfCur = null;
+let pdfCur = null, workerUrl = null;
 async function previewPdf(q) {
   busy(true);
   try {
-    const doc = await buildPdf(q);
-    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    pdfUrl = URL.createObjectURL(doc.output('blob')); pdfCur = q;
-    $('qdName').textContent = q.id + '.pdf'; $('qdOpen').href = pdfUrl; $('qdFrame').src = pdfUrl + '#view=FitH';
-    $('qd').classList.add('on');
+    if (!window.pdfjsLib) throw new Error('Preview library failed to load. Check internet connection and refresh.');
+    const doc = await buildPdf(q); pdfCur = q;
+    if (!workerUrl) {
+      const src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      try { workerUrl = URL.createObjectURL(new Blob([await (await fetch(src)).text()], { type: 'text/javascript' })); } catch (_) { workerUrl = src; }
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+    }
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(doc.output('arraybuffer')) }).promise;
+    const box = $('qdPages'); box.innerHTML = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2 });
+      const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+      c.className = 'mx-auto mb-4 block h-auto w-full max-w-[794px] bg-white shadow-lg';
+      box.appendChild(c);
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    }
+    $('qdName').textContent = q.id + '.pdf  (' + pdf.numPages + ' page' + (pdf.numPages > 1 ? 's' : '') + ')';
+    $('qd').classList.add('on'); box.scrollTop = 0;
   } catch (e) { toast(e.message, true); }
   busy(false);
 }
@@ -632,7 +670,7 @@ async function makePdf(q) {
   try { (await buildPdf(q)).save(q.id + '.pdf'); toast('Downloaded ' + q.id + '.pdf'); }
   catch (e) { toast(e.message, true); }
 }
-function closePdfPreview() { $('qd').classList.remove('on'); $('qdFrame').src = 'about:blank'; }
+function closePdfPreview() { $('qd').classList.remove('on'); $('qdPages').innerHTML = ''; }
 
 /* ---------- Load ---------- */
 async function loadAll() {
