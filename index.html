@@ -130,14 +130,18 @@ a{@apply text-indigo-600}
 </main>
 
 <!-- MAIL-STYLE VIEW -->
-<div class="ov" id="ov"><div class="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+<div class="ov" id="ov"><div class="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+  <div id="mBand" class="flex items-center justify-between gap-3 border-b-4 border-teal-600 bg-[#102a54] px-5 py-3 text-white">
+    <img id="mLogo" src="https://pristinepearl.github.io/Home/alt-logo.png" alt="Pristine Pearl" class="h-10 max-w-[45%] object-contain" onerror="this.style.display='none'">
+    <div class="text-right"><div class="text-lg font-extrabold leading-tight tracking-wide">DEPOT QUERIES DESK</div><div class="text-[11px] opacity-80">Pristine Pearl Pharma Pvt Ltd</div></div>
+  </div>
   <div class="flex items-center justify-between gap-2 border-b border-slate-200 px-5 py-3">
     <div class="flex items-center gap-2"><span id="mTitle" class="font-semibold text-slate-700"></span><span id="mPill"></span></div>
     <div class="flex gap-2"><button class="btn sm" id="mView">👁 View</button><button class="btn sm p" id="mPdf">⬇ PDF</button><button class="btn sm" id="mClose">✕ Close</button></div>
   </div>
   <div id="mMail" class="px-5 py-4"></div>
   <div class="rounded-b-2xl border-t border-slate-200 bg-slate-50 px-5 py-4">
-    <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">↩ Reply / Update</p>
+    <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Update Query</p>
     <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
       <div><label>Status</label><select id="uStatus"><option>Pending</option><option>Closed</option></select></div>
       <div><label>Closed Date</label><input type="date" id="uClosed"></div>
@@ -416,28 +420,42 @@ function closePreview() { $('pv').classList.remove('on'); $('pvFrame').src = 'ab
 
 function openDetail(id) {
   cur = Q.find(q => q.id === id); if (!cur) return;
-  const q = cur, name = q.from === 'Customer' ? q.custName : q.staffName, addr = q.mail || q.mobile || '';
+  const q = cur, closed = q.status === 'Closed';
   curFiles = docFiles(q); if (!curFiles.length && q.docLink) curFiles = [{ n: 'Reference document', u: q.docLink }];
-  const chip = (t, v) => v ? `<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"><b>${t}</b> ${esc(v)}</span>` : '';
-  const files = curFiles.map((f, i) => `<div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"><span>📎</span><span class="flex-1 truncate">${esc(f.n)}</span><button class="btn sm" data-view="${i}">👁 View</button><a class="btn sm" href="${esc(f.u)}" target="_blank" rel="noopener">↗</a></div>`).join('');
+  const stc = closed ? 'bg-emerald-600' : 'bg-amber-600', stt = closed ? 'text-emerald-600' : 'text-amber-600';
+  const sec = (n, t) => `<div class="mt-3 border-l-4 border-teal-600 bg-[#102a54] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.15em] text-white">${n}. ${t}</div>`;
+  const cell = (l, v, c = '') => `<div class="grid grid-cols-[100px_1fr]"><div class="bg-slate-100 px-2 py-1.5 text-[11px] font-bold text-[#102a54]">${l}</div><div class="whitespace-pre-wrap break-words border-l border-slate-300 px-2 py-1.5 text-sm ${c}">${esc(v) || '-'}</div></div>`;
+  const box = h => `<div class="border border-t-0 border-slate-300">${h}</div>`;
+  const row = (l, v, c) => `<div class="border-t border-slate-300 first:border-t-0">${cell(l, v, c)}</div>`;
+  const h2 = (l1, v1, l2, v2, c1 = '', c2 = '') => `<div class="grid border-t border-slate-300 first:border-t-0 sm:grid-cols-2">${cell(l1, v1, c1)}<div class="border-t border-slate-300 sm:border-l sm:border-t-0">${cell(l2, v2, c2)}</div></div>`;
+  let h = `
+    <div class="flex items-start justify-between gap-3 border-b-2 border-[#102a54] pb-2">
+      <div><h2 class="text-2xl font-extrabold tracking-tight text-[#102a54]">QUERY DOCUMENT</h2>
+        <p class="text-xs text-slate-500">Reference No: ${esc(q.id)} &nbsp; Date: ${fmtD(q.date)}</p></div>
+      <span class="rounded-full ${stc} px-4 py-1.5 text-xs font-bold uppercase text-white">${esc(q.status)}</span>
+    </div>`;
+  let n = 1;
+  h += sec(n++, 'Query Information') + box(
+    h2('Query ID', q.id, 'Date', fmtD(q.date), 'font-bold') +
+    h2('Query From', q.from, 'Received Via', q.via) +
+    h2('Status', q.status, 'Closed Date', closed ? fmtD(q.closedDate) : '-', 'font-bold ' + stt) +
+    h2('Created On', fmtDT(q.createdAt), 'Last Updated', fmtDT(q.updatedAt)));
+  if (q.custName) h += sec(n++, 'Customer Details') + box(
+    h2('Customer Name', q.custName, 'Customer Code', q.custCode, 'font-bold') + h2('Area', custArea(q), 'Customer Team', q.custTeam));
+  if (q.staffName) h += sec(n++, 'Staff Details') + box(
+    h2('Staff Name', q.staffName, 'Staff ID', q.staffId, 'font-bold') + h2('HQ / Location', staffHQ(q), 'Staff Team', q.staffTeam));
+  h += sec(n++, 'Contact Details') + box(h2('Mail ID', q.mail, 'Mobile', q.mobile));
+  h += sec(n++, 'Query Details') + box(row('Subject', q.subject, 'font-semibold') + row('Description', q.body));
+  h += sec(n++, 'Resolution') + box(row('Resolution Taken', q.resolution || (closed ? '' : 'Pending - no resolution recorded yet.')) +
+    h2('Resolution Status', q.status, 'Closed Date', closed ? fmtD(q.closedDate) : '-', 'font-bold ' + stt));
+  let qr = '';
+  if (q.docLink && typeof qrcode !== 'undefined') { try { const c = qrcode(0, 'M'); c.addData(q.docLink); c.make(); qr = `<div class="shrink-0 p-2 text-center"><a href="${esc(q.docLink)}" target="_blank" rel="noopener">${c.createImgTag(4, 4).replace('<img', '<img class="mx-auto h-24 w-24" style="image-rendering:pixelated"')}</a><p class="text-[10px] text-slate-500">Scan to view files</p></div>`; } catch (_) {} }
+  const files = curFiles.map((f, i) => `<div class="grid grid-cols-[40px_1fr_auto] items-center border-t border-slate-300 first:border-t-0"><div class="bg-slate-100 px-2 py-2 text-sm">${i + 1}</div><div class="truncate border-l border-slate-300 px-2 py-2 text-sm text-blue-700">${esc(f.n)}</div><div class="flex gap-1 border-l border-slate-300 px-2 py-1"><button class="btn sm" data-view="${i}">👁 View</button><a class="btn sm" href="${esc(f.u)}" target="_blank" rel="noopener">↗</a></div></div>`).join('');
+  h += sec(n++, 'Reference Documents') + `<div class="flex items-start border border-t-0 border-slate-300"><div class="min-w-0 flex-1">${files || '<p class="px-3 py-2 text-sm italic text-slate-500">No reference document attached.</p>'}</div>${qr}</div>`;
   $('mTitle').textContent = q.id;
   $('mPill').innerHTML = `<span class="pill ${esc(q.status)}">${esc(q.status)}</span>`;
-  $('mMail').innerHTML = `
-    <h2 class="text-xl font-semibold text-slate-900">${esc(q.subject)}</h2>
-    <div class="mt-3 flex items-start gap-3">
-      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-700">${esc((String(name || '?').trim()[0] || '?').toUpperCase())}</div>
-      <div class="min-w-0 flex-1"><div class="flex flex-wrap items-baseline gap-x-2"><b>${esc(name)}</b><span class="text-slate-500">&lt;${esc(addr)}&gt;</span></div>
-        <div class="text-xs text-slate-500">to Query Desk · via ${esc(q.via)}${q.mail && q.mobile ? ' · ' + esc(q.mobile) : ''}</div></div>
-      <div class="text-right text-xs text-slate-500">${fmtD(q.date)}<br><span class="text-slate-400">${esc(q.id)}</span></div>
-    </div>
-    <div class="mt-3 flex flex-wrap gap-2">
-      ${chip('Customer', q.custName ? [q.custName, q.custCode, custArea(q), q.custTeam].filter(Boolean).join(' · ') : '')}
-      ${chip('Staff', q.staffName ? [q.staffName, q.staffId, staffHQ(q) && 'HQ: ' + staffHQ(q), q.staffTeam].filter(Boolean).join(' · ') : '')}
-    </div>
-    <div class="mt-4 whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 p-4 text-[15px] leading-relaxed">${esc(q.body)}</div>
-    ${files ? `<div class="mt-4"><p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Attachments (${curFiles.length})</p><div class="grid gap-2 sm:grid-cols-2">${files}</div></div>` : ''}
-    ${q.status === 'Closed' ? `<div class="mt-5 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-4"><div class="mb-1 text-xs font-semibold text-emerald-700">↩ Resolution · closed ${fmtD(q.closedDate)}</div><div class="whitespace-pre-wrap break-words">${esc(q.resolution)}</div></div>` : ''}
-    <p class="mt-4 text-xs text-slate-400">Created ${fmtDT(q.createdAt)}${q.updatedAt && q.updatedAt !== q.createdAt ? ' · Updated ' + fmtDT(q.updatedAt) : ''}</p>`;
+  $('mMail').innerHTML = h;
+  loadLogo().then(l => { const dark = !(l && !l.light); $('mBand').className = 'flex items-center justify-between gap-3 border-b-4 border-teal-600 px-5 py-3 ' + (dark ? 'bg-[#102a54] text-white' : 'bg-white text-[#102a54]'); });
   $('uStatus').value = q.status; $('uRes').value = q.resolution; $('uClosed').value = q.closedDate;
   $('uFile').value = '';
   syncStatus();
