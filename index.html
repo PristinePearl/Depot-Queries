@@ -132,7 +132,7 @@ a{@apply text-indigo-600}
 <div class="ov" id="ov"><div class="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
   <div class="flex items-center justify-between gap-2 border-b border-slate-200 px-5 py-3">
     <div class="flex items-center gap-2"><span id="mTitle" class="font-semibold text-slate-700"></span><span id="mPill"></span></div>
-    <div class="flex gap-2"><button class="btn sm" id="mPdf">📄 PDF</button><button class="btn sm" id="mClose">✕ Close</button></div>
+    <div class="flex gap-2"><button class="btn sm" id="mView">👁 View</button><button class="btn sm p" id="mPdf">⬇ PDF</button><button class="btn sm" id="mClose">✕ Close</button></div>
   </div>
   <div id="mMail" class="px-5 py-4"></div>
   <div class="rounded-b-2xl border-t border-slate-200 bg-slate-50 px-5 py-4">
@@ -155,6 +155,17 @@ a{@apply text-indigo-600}
     <button id="pvClose" class="btn sm">✕</button>
   </div>
   <iframe id="pvFrame" class="h-[75vh] w-full bg-slate-100" src="about:blank"></iframe>
+</div></div>
+
+<!-- QUERY DOCUMENT PREVIEW -->
+<div class="ov" id="qd" style="z-index:60"><div class="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+  <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-2">
+    <span class="text-lg">📄</span><span id="qdName" class="flex-1 truncate font-medium"></span>
+    <a id="qdOpen" target="_blank" rel="noopener" class="btn sm">Open in new tab ↗</a>
+    <button id="qdDl" class="btn sm p">⬇ Download PDF</button>
+    <button id="qdClose" class="btn sm">✕</button>
+  </div>
+  <iframe id="qdFrame" class="h-[78vh] w-full bg-slate-200" src="about:blank"></iframe>
 </div></div>
 
 <div id="toast"></div>
@@ -392,7 +403,7 @@ function renderList() {
     return `<tr data-id="${esc(q.id)}" class="cursor-pointer hover:bg-indigo-50/60"><td class="whitespace-nowrap font-medium text-indigo-700">${esc(q.id)}</td><td class="whitespace-nowrap">${fmtD(q.date)}</td><td>${esc(q.from)}</td>
       <td>${esc(main)}<small>${esc(subn)}</small></td><td>${esc(q.subject)}</td><td>${esc(q.via)}</td>
       <td><span class="pill ${esc(q.status)}">${esc(q.status)}</span></td><td class="whitespace-nowrap">${fmtD(q.closedDate)}</td>
-      <td class="whitespace-nowrap"><button class="btn sm" data-pdf="${esc(q.id)}">📄 PDF</button>${nf ? ` <span class="text-xs text-slate-500">📎${nf}</span>` : ''}</td></tr>`;
+      <td class="whitespace-nowrap"><button class="btn sm" data-pview="${esc(q.id)}">👁 View</button> <button class="btn sm" data-pdf="${esc(q.id)}">⬇ PDF</button>${nf ? ` <span class="text-xs text-slate-500">📎${nf}</span>` : ''}</td></tr>`;
   }).join('') || '<tr><td colspan="9" class="py-6 text-center text-slate-500">No queries</td></tr>';
 }
 
@@ -456,97 +467,172 @@ async function updateQuery() {
 }
 
 /* ---------- Query document (PDF) ---------- */
-function makePdf(q) {
-  if (!window.jspdf || typeof qrcode === 'undefined') return toast('PDF libraries failed to load. Check internet connection and refresh.', true);
-  const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-  doc.setLineHeightFactor(1.27);
-  const L = 15, W = 180, LW = 48, B = 280, LH = 4.5;
-  let y = 0;
-  const clean = s => String(s ?? '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/\u20B9/g, 'Rs.').replace(/[\u2022\u00B7]/g, '-').replace(/\t/g, ' ').replace(/\r/g, '').replace(/[^\n\x20-\x7E\xA0-\xFF]/g, '?');
+const LOGO_URL = 'https://pristinepearl.github.io/Home/alt-logo.png';
+let logoP = null;
+function loadLogo() {
+  return logoP || (logoP = new Promise(res => {
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => {
+      try {
+        const k = Math.min(1, 700 / im.naturalWidth), w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
+        const d = x.getImageData(0, 0, w, h).data; let s = 0, n = 0;
+        for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 40) { s += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; }
+        res({ data: c.toDataURL('image/png'), w, h, light: n > 0 && s / n > 190 });
+      } catch (_) { res(null); }
+    };
+    im.onerror = () => res(null); im.src = LOGO_URL;
+  }));
+}
 
-  const header = () => {
-    doc.setFillColor(22, 58, 105); doc.rect(0, 0, 210, 24, 'F');
-    doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-    doc.text('PRISTINE PEARL PHARMA PVT LTD', L, 11);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text('Query Document', L, 18);
-    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.text(clean(q.id), 195, 11, { align: 'right' });
-    doc.setFont('helvetica', 'normal'); doc.text('Status: ' + q.status, 195, 18, { align: 'right' });
-    doc.setTextColor(0); y = 31;
+async function buildPdf(q) {
+  if (!window.jspdf || typeof qrcode === 'undefined') throw new Error('PDF libraries failed to load. Check internet connection and refresh.');
+  const logo = await loadLogo();
+  const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  doc.setLineHeightFactor(1.3);
+  const NAVY = [16, 42, 84], TEAL = [13, 148, 136], INK = [30, 41, 59], MUTE = [100, 116, 139], LINE = [226, 232, 240], SOFT = [244, 247, 251];
+  const GREEN = [5, 150, 105], AMBER = [217, 119, 6];
+  const fill = c => doc.setFillColor(...c), ink = c => doc.setTextColor(...c), stroke = c => doc.setDrawColor(...c);
+  const font = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
+  const clean = s => String(s ?? '').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/\u20B9/g, 'Rs.').replace(/[\u2022\u00B7]/g, '-').replace(/\t/g, ' ').replace(/\r/g, '').replace(/[^\n\x20-\x7E\xA0-\xFF]/g, '?');
+  const L = 14, W = 182, B = 278, LH = 4.8;
+  const closed = q.status === 'Closed', stCol = closed ? GREEN : AMBER;
+  const darkBand = !(logo && !logo.light);
+  let y = 0;
+
+  const header = first => {
+    const H = first ? 32 : 18;
+    fill(darkBand ? NAVY : [255, 255, 255]); doc.rect(0, 0, 210, H, 'F');
+    fill(TEAL); doc.rect(0, H, 210, 1.4, 'F');
+    const tc = darkBand ? [255, 255, 255] : NAVY;
+    if (logo) {
+      const lh = first ? 17 : 9, lw = Math.min(lh * logo.w / logo.h, 70);
+      doc.addImage(logo.data, 'PNG', L, (H - lh) / 2, lw, lw * logo.h / logo.w);
+    } else { ink(tc); font('bold', first ? 14 : 10); doc.text('PRISTINE PEARL PHARMA', L, H / 2 + 1.5); }
+    ink(tc);
+    if (first) {
+      font('bold', 8); doc.text('QUERY DOCUMENT', 196, 12, { align: 'right' });
+      font('bold', 17); doc.text(clean(q.id), 196, 22, { align: 'right' });
+    } else { font('bold', 10); doc.text(clean(q.id) + '  |  Query Document', 196, 10.5, { align: 'right' }); }
+    ink(INK); y = H + 8;
   };
-  const newPage = () => { doc.addPage(); header(); };
-  const section = (t, need = 16) => {
+  const newPage = () => { doc.addPage(); header(false); };
+  const sec = (t, need = 24) => {
     if (y + need > B) newPage();
-    y += 3; doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(22, 58, 105);
-    doc.text(t.toUpperCase(), L, y + 4); doc.setDrawColor(22, 58, 105); doc.line(L, y + 6, L + W, y + 6);
-    doc.setTextColor(0); doc.setDrawColor(150); y += 8;
+    font('bold', 8); ink(TEAL); doc.setCharSpace(1); doc.text(t.toUpperCase(), L, y + 3); doc.setCharSpace(0);
+    stroke(LINE); doc.setLineWidth(0.3); doc.line(L, y + 5, L + W, y + 5); y += 9;
   };
-  const row = (label, val) => {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-    let lines = clean(val).trim() || '-';
-    lines = lines.split('\n').flatMap(t => doc.splitTextToSize(t || ' ', W - LW - 4));
-    let first = true;
+  const flow = (text, bar, size = 10) => {
+    font('normal', size);
+    let lines = clean(text).trim().split('\n').flatMap(t => doc.splitTextToSize(t || ' ', W - 10));
     while (lines.length) {
-      let n = Math.floor((B - y - 4) / LH);
-      if (n < 1) { newPage(); continue; }
-      const part = lines.splice(0, n), h = part.length * LH + 4;
-      doc.setDrawColor(150); doc.setFillColor(238, 242, 248);
-      doc.rect(L, y, LW, h, 'FD'); doc.rect(L + LW, y, W - LW, h);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.text(first ? label : label + ' (cont.)', L + 2, y + 5);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(part, L + LW + 2, y + 5);
-      y += h; first = false;
-      if (lines.length) newPage();
+      const n = Math.floor((B - y - 6) / LH); if (n < 1) { newPage(); continue; }
+      const part = lines.splice(0, n), h = part.length * LH + 6;
+      fill(SOFT); doc.rect(L, y, W, h, 'F'); fill(bar); doc.rect(L, y, 1.4, h, 'F');
+      ink(INK); font('normal', size); doc.text(part, L + 6, y + 6);
+      y += h; if (lines.length) newPage();
     }
   };
 
-  header();
-  section('Query Details');
-  row('Query ID', q.id); row('Date', fmtD(q.date)); row('Status', q.status);
-  row('Query From', q.from); row('Received Via', q.via);
-  row('Created / Updated', (fmtDT(q.createdAt) || '-') + '  /  ' + (fmtDT(q.updatedAt) || '-'));
+  header(true);
 
-  section('Contact Details');
-  if (q.custName) row('Customer', `${q.custName}\nCode: ${q.custCode}   Area: ${custArea(q) || '-'}   Team: ${q.custTeam}`);
-  if (q.staffName) row('Staff', `${q.staffName}\nID: ${q.staffId}   HQ: ${staffHQ(q) || '-'}   Team: ${q.staffTeam}`);
-  row('Mail ID', q.mail); row('Mobile', q.mobile);
+  // summary cards
+  const cw = (W - 9) / 4, ch = 17;
+  [['Query ID', q.id], ['Date', fmtD(q.date)], ['Received Via', q.via], ['Status', q.status]].forEach(([l, v], i) => {
+    const x = L + i * (cw + 3);
+    stroke(LINE); fill([255, 255, 255]); doc.roundedRect(x, y, cw, ch, 2, 2, 'FD');
+    font('bold', 7); ink(MUTE); doc.text(l.toUpperCase(), x + 4, y + 5.5);
+    if (l === 'Status') {
+      font('bold', 8.5); const tw = doc.getTextWidth(clean(v)) + 8;
+      fill(stCol); doc.roundedRect(x + 4, y + 8, tw, 6, 3, 3, 'F'); ink([255, 255, 255]); doc.text(clean(v), x + 8, y + 12.1);
+    } else { font('bold', 10); ink(INK); doc.text(doc.splitTextToSize(clean(v) || '-', cw - 8)[0], x + 4, y + 12.5); }
+  });
+  y += ch + 3;
+  font('normal', 7.5); ink(MUTE);
+  doc.text('Created ' + (clean(fmtDT(q.createdAt)) || '-') + '   |   Last updated ' + (clean(fmtDT(q.updatedAt)) || '-'), L, y + 3); y += 8;
 
-  section('Query');
-  row('Subject', q.subject); row('Body', q.body);
+  // parties
+  sec('Raised By & Contact');
+  const cards = [];
+  cards.push({ t: 'Query from', r: [[q.from, 1]] });
+  if (q.custName) cards.push({ t: 'Customer', r: [[q.custName, 1], ['Code: ' + (q.custCode || '-')], ['Area: ' + (custArea(q) || '-')], ['Team: ' + (q.custTeam || '-')]] });
+  if (q.staffName) cards.push({ t: 'Staff', r: [[q.staffName, 1], ['ID: ' + (q.staffId || '-')], ['HQ: ' + (staffHQ(q) || '-')], ['Team: ' + (q.staffTeam || '-')]] });
+  cards.push({ t: 'Contact', r: [['Mail: ' + (q.mail || '-')], ['Mobile: ' + (q.mobile || '-')]] });
+  const gap = 3, pw = (W - gap * (cards.length - 1)) / cards.length;
+  font('normal', 9);
+  cards.forEach(c => c.l = c.r.flatMap(([t, b]) => { font(b ? 'bold' : 'normal', 9); return doc.splitTextToSize(clean(t), pw - 8).map(s => [s, b]); }));
+  const phh = 10 + Math.max(...cards.map(c => c.l.length)) * 4.6;
+  if (y + phh > B) newPage();
+  cards.forEach((c, i) => {
+    const x = L + i * (pw + gap);
+    stroke(LINE); fill([255, 255, 255]); doc.roundedRect(x, y, pw, phh, 2, 2, 'FD');
+    font('bold', 7); ink(TEAL); doc.text(c.t.toUpperCase(), x + 4, y + 5.5);
+    c.l.forEach(([s, b], k) => { font(b ? 'bold' : 'normal', 9); ink(b ? INK : MUTE); doc.text(s, x + 4, y + 11 + k * 4.6); });
+  });
+  y += phh + 6;
 
-  section('Resolution');
-  row('Resolution Taken', q.resolution); row('Closed Date', fmtD(q.closedDate));
+  // subject + body
+  sec('Query', 34);
+  font('bold', 13); ink(NAVY);
+  const sub = doc.splitTextToSize(clean(q.subject) || '-', W);
+  doc.text(sub, L, y + 4); y += sub.length * 6 + 4;
+  flow(q.body || '-', TEAL);
+  y += 5;
 
-  const BOX = 56;
-  section('Reference Document', BOX + 12);
-  y += 2;
-  doc.setDrawColor(150); doc.rect(L, y, W, BOX);
+  // resolution
+  sec('Resolution', 30);
+  flow(q.resolution || (closed ? '-' : 'No resolution recorded yet - query is pending.'), stCol);
+  font('normal', 8.5); ink(MUTE);
+  doc.text(closed ? 'Closed on ' + (clean(fmtD(q.closedDate)) || '-') : 'Status: Pending', L, y + 5); y += 11;
+
+  // reference docs
+  const BOX = 52;
+  sec('Reference Documents', BOX + 12);
+  stroke(LINE); fill([255, 255, 255]); doc.roundedRect(L, y, W, BOX, 2, 2, 'FD');
   if (q.docLink) {
     const qr = qrcode(0, 'M'); qr.addData(q.docLink); qr.make();
-    const n = qr.getModuleCount(), size = 42, cell = size / n, x0 = L + 6, y0 = y + 7;
-    doc.setFillColor(0, 0, 0);
+    const n = qr.getModuleCount(), size = 40, cell = size / n, x0 = L + 6, y0 = y + 6;
+    fill([0, 0, 0]);
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
       if (qr.isDark(r, c)) doc.rect(x0 + c * cell, y0 + r * cell, cell + 0.05, cell + 0.05, 'F');
-    const tx = L + 56, fl = docFiles(q);
     doc.link(x0, y0, size, size, { url: q.docLink });
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Scan QR code to view reference documents', tx, y + 10);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-    doc.text((fl.length || 1) + ' file(s) attached', tx, y + 17);
-    fl.slice(0, 6).forEach((f, i) => doc.text('- ' + clean(f.n).slice(0, 60), tx, y + 24 + i * 5));
-    if (fl.length > 6) doc.text('+ ' + (fl.length - 6) + ' more', tx, y + 54);
-    doc.setTextColor(0);
-  } else {
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(10);
-    doc.text('No reference document attached.', L + 4, y + 10);
-  }
+    const tx = L + 54, fl = docFiles(q);
+    font('bold', 11); ink(NAVY); doc.text('Scan to view reference documents', tx, y + 10);
+    font('normal', 9); ink(MUTE); doc.text((fl.length || 1) + ' file(s) attached', tx, y + 16);
+    ink(INK); fl.slice(0, 6).forEach((f, i) => doc.text('-  ' + clean(f.n).slice(0, 60), tx, y + 23 + i * 5));
+    if (fl.length > 6) doc.text('+ ' + (fl.length - 6) + ' more', tx, y + 23 + 6 * 5);
+  } else { font('italic', 10); ink(MUTE); doc.text('No reference document attached.', L + 5, y + 10); }
   y += BOX;
 
+  // footer
   const pages = doc.getNumberOfPages(), stamp = nowDT();
   for (let i = 1; i <= pages; i++) {
-    doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
-    doc.text('Generated on ' + stamp, L, 291); doc.text(`Page ${i} of ${pages}`, L + W, 291, { align: 'right' });
+    doc.setPage(i); stroke(LINE); doc.line(L, 285, L + W, 285);
+    font('normal', 7.5); ink(MUTE);
+    doc.text('Pristine Pearl Pharma Pvt Ltd  |  Generated on ' + stamp, L, 290);
+    doc.text(`Page ${i} of ${pages}`, L + W, 290, { align: 'right' });
   }
-  doc.save(q.id + '.pdf');
-  toast('Downloaded ' + q.id + '.pdf');
+  return doc;
 }
+
+let pdfUrl = null, pdfCur = null;
+async function previewPdf(q) {
+  busy(true);
+  try {
+    const doc = await buildPdf(q);
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    pdfUrl = URL.createObjectURL(doc.output('blob')); pdfCur = q;
+    $('qdName').textContent = q.id + '.pdf'; $('qdOpen').href = pdfUrl; $('qdFrame').src = pdfUrl + '#view=FitH';
+    $('qd').classList.add('on');
+  } catch (e) { toast(e.message, true); }
+  busy(false);
+}
+async function makePdf(q) {
+  try { (await buildPdf(q)).save(q.id + '.pdf'); toast('Downloaded ' + q.id + '.pdf'); }
+  catch (e) { toast(e.message, true); }
+}
+function closePdfPreview() { $('qd').classList.remove('on'); $('qdFrame').src = 'about:blank'; }
 
 /* ---------- Load ---------- */
 async function loadAll() {
@@ -582,6 +668,8 @@ $('btnReset').onclick = resetForm;
 $('btnRefresh').onclick = loadAll;
 ['qSearch', 'qStatus', 'qFrom', 'qVia', 'qDf', 'qDt'].forEach(i => $(i).addEventListener('input', renderList));
 $('tbody').onclick = e => {
+  const vb = e.target.closest('[data-pview]');
+  if (vb) { e.stopPropagation(); const q = Q.find(x => x.id === vb.dataset.pview); if (q) previewPdf(q); return; }
   const pb = e.target.closest('[data-pdf]');
   if (pb) { e.stopPropagation(); const q = Q.find(x => x.id === pb.dataset.pdf); if (q) makePdf(q); return; }
   const tr = e.target.closest('tr[data-id]'); if (tr) openDetail(tr.dataset.id); };
@@ -590,6 +678,10 @@ $('mClose').onclick = () => $('ov').classList.remove('on');
 $('ov').onclick = e => { if (e.target === $('ov')) $('ov').classList.remove('on'); };
 $('mSave').onclick = updateQuery;
 $('mPdf').onclick = () => { if (cur) makePdf(cur); };
+$('mView').onclick = () => { if (cur) previewPdf(cur); };
+$('qdDl').onclick = () => { if (pdfCur) makePdf(pdfCur); };
+$('qdClose').onclick = closePdfPreview;
+$('qd').onclick = e => { if (e.target === $('qd')) closePdfPreview(); };
 
 $('mMail').onclick = e => { const b = e.target.closest('[data-view]'); if (b && curFiles[+b.dataset.view]) openPreview(curFiles[+b.dataset.view]); };
 $('pvClose').onclick = closePreview;
